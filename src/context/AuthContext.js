@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
         if (authService.isAuthenticated()) {
           // Try to validate token with backend
           const isValid = await authService.validateToken();
-          
+
           if (isValid) {
             // Get user info from local storage
             const storedUser = authService.getCurrentUser();
@@ -39,14 +39,19 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  // Login function
+  // Login function - UPDATED to return user data
   const login = async (username, password) => {
     try {
       setLoading(true);
       setError(null);
-      await authService.login(username, password);
-      const userInfo = authService.getCurrentUser();
+
+      // Call authService login which returns user data
+      const userInfo = await authService.login(username, password);
+
+      // Set user in state
       setUser(userInfo);
+
+      // Return user data so Login.js can use it for redirect logic
       return userInfo;
     } catch (err) {
       setError('Login failed: ' + (err.message || 'Unknown error'));
@@ -84,7 +89,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     login,
-    signup, // Add signup to the context
+    signup,
     logout,
     hasRole: (role) => user && user.role === role
   };

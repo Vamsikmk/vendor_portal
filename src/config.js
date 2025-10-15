@@ -6,7 +6,7 @@ const getApiBaseUrl = () => {
   if (process.env.NODE_ENV === 'production') {
     return 'https://3b6akxpfpr.us-east-2.awsapprunner.com';
   }
-  
+
   // For development, you can still use localhost if running backend locally
   // or use the deployed API for development as well
   return process.env.REACT_APP_API_BASE_URL || 'https://3b6akxpfpr.us-east-2.awsapprunner.com';
@@ -16,24 +16,25 @@ const getApiBaseUrl = () => {
 const API_CONFIG = {
   // Base URL for API endpoints - now points to your deployed AWS API
   BASE_URL: getApiBaseUrl(),
-  
+
   // API endpoints
   ENDPOINTS: {
     // Authentication
     LOGIN: '/token',
+    REGISTER: '/register',
     USERS_ME: '/users/me',
     VALIDATE_TOKEN: '/validate-token',
-    
+
     // Products
     PRODUCTS: '/api/products',
     PRODUCTS_PAGINATED: '/api/products/paginated',
     PRODUCT_BY_ID: (productId) => `/api/products/${productId}`,
-    
+
     // Dashboard metrics
     DASHBOARD_METRICS: '/api/dashboard-metrics',
     CUSTOMER_INSIGHTS: '/api/customer-insights',
     RECENT_CUSTOMERS: '/api/recent-customers',
-    
+
     // Individual metrics
     TOTAL_IMPRESSIONS: '/api/total-impressions',
     ENGAGEMENT_RATE: '/api/engagement-rate',
@@ -42,15 +43,15 @@ const API_CONFIG = {
     NEW_CUSTOMERS: '/api/new-customers',
     AVG_HEALTH_INDEX: '/api/avg-health-index',
     RETENTION_RATE: '/api/retention-rate',
-    
+
     // Customer details
     CUSTOMER_VISITS: (customerId) => `/api/customer/${customerId}/visits`,
-    
+
     // Database exploration
     TABLES: '/tables',
     TABLE_COLUMNS: (tableName) => `/tables/${tableName}/columns`,
     TABLE_DATA: (tableName) => `/tables/${tableName}/data`,
-    
+
     // Health check
     HEALTH_CHECK: '/',
     API_DOCS: '/docs'
