@@ -14,6 +14,7 @@ const Signup = () => {
     firstName: '',
     lastName: '',
     email: '',
+    username: '',
     password: '',
     confirmPassword: '',
     dob: '',
@@ -115,20 +116,22 @@ const Signup = () => {
       };
 
       // Calculate age from DOB if provided
-      let age = null;
-      if (formData.dob) {
-        const dob = new Date(formData.dob);
-        const today = new Date();
-        age = today.getFullYear() - dob.getFullYear();
-        // Adjust age if birthday hasn't occurred yet this year
-        if (today.getMonth() < dob.getMonth() ||
-          (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) {
-          age--;
-        }
-      }
+      // let age = null;
+      // if (formData.dob) {
+      //   const dob = new Date(formData.dob);
+      //   const today = new Date();
+      //   age = today.getFullYear() - dob.getFullYear();
+      //   // Adjust age if birthday hasn't occurred yet this year
+      //   if (today.getMonth() < dob.getMonth() ||
+      //     (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) {
+      //     age--;
+      //   }
+      // }
 
       // Generate username from email if not provided
-      const username = formData.email.split('@')[0];
+      // const username = formData.email.split('@')[0];
+      const username = formData.username.trim();
+
 
       // Construct the user data object matching your database schema
       const userData = {
@@ -141,11 +144,11 @@ const Signup = () => {
         // We don't set password_hash here - it will be handled by the backend
         role: roleMapping[formData.userType] || 'patient',
         status: (formData.userType === 'customer' || formData.userType === 'vendor') ? 'active' : 'pending',
-
+        phone: formData.phone || null,
         // Optional fields
-        age: age,
+        // age: age,
         gender: formData.gender || null,
-        phone: formData.phone || null
+
       };
 
       // Add professional data if applicable
@@ -187,23 +190,102 @@ const Signup = () => {
       console.error('Signup error:', error);
 
       // Extract error message for better user feedback
-      let errorMessage = 'Failed to create account. Please try again.';
+      let errorMsg = 'Failed to create account. Please try again.';
 
       if (error.response && error.response.data) {
-        errorMessage = error.response.data.detail || error.response.data.message || errorMessage;
+        errorMsg = error.response.data.detail || error.response.data.message || errorMsg;
+
+        // Handle specific error cases
+        if (errorMsg.includes('Username already taken')) {
+          setErrorMessage('Username already exists. Please choose a different username.');
+          return;
+        }
+
+        if (errorMsg.includes('Email already registered')) {
+          setErrorMessage('Email already registered. Please use a different email or login.');
+          return;
+        }
       } else if (error.detail) {
-        errorMessage = error.detail;
+        errorMsg = error.detail;
       } else if (error.message) {
-        errorMessage = error.message;
+        errorMsg = error.message;
       }
 
-      setErrorMessage(errorMessage);
+      setErrorMessage(errorMsg);
     }
   };
 
   // Handle next step in multi-step form
   const handleNextStep = (e) => {
     e.preventDefault();
+
+    // Validate Step 1 fields before proceeding
+    if (currentStep === 1) {
+      // Check if fields are empty
+      if (!formData.firstName.trim()) {
+        setErrorMessage('First name is required');
+        return;
+      }
+
+      if (!formData.lastName.trim()) {
+        setErrorMessage('Last name is required');
+        return;
+      }
+
+      if (!formData.email.trim()) {
+        setErrorMessage('Email is required');
+        return;
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setErrorMessage('Please enter a valid email address');
+        return;
+      }
+
+      // Clear error message if validation passes
+      setErrorMessage('');
+    }
+
+    // Validate Step 2 fields before proceeding (if there are more steps)
+    if (currentStep === 2) {
+      // Check password fields
+      if (!formData.password.trim()) {
+        setErrorMessage('Password is required');
+        return;
+      }
+
+      if (formData.password.length < 8) {
+        setErrorMessage('Password must be at least 8 characters');
+        return;
+      }
+
+      if (!formData.confirmPassword.trim()) {
+        setErrorMessage('Please confirm your password');
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setErrorMessage('Passwords do not match');
+        return;
+      }
+
+      if (!formData.phone.trim()) {
+        setErrorMessage('Phone number is required');
+        return;
+      }
+
+      const phoneDigits = formData.phone.replace(/\D/g, '');
+      if (phoneDigits.length !== 10) {
+        setErrorMessage('Phone number must be exactly 10 digits');
+        return;
+      }
+
+      // Clear error message if validation passes
+      setErrorMessage('');
+    }
+
     setCurrentStep(currentStep + 1);
   };
 
@@ -363,7 +445,7 @@ const Signup = () => {
                 </div>
 
                 {/* Approval Messages */}
-                {formData.userType === 'doctor' && (
+                {/* {formData.userType === 'doctor' && (
                   <div className="approval-message show" style={{
                     backgroundColor: '#FFF8E1',
                     borderLeft: '4px solid #FFC107',
@@ -387,7 +469,7 @@ const Signup = () => {
                   }}>
                     Note: Healthcare Provider accounts require verification before access is granted. We'll ask for your professional details in the next step.
                   </div>
-                )}
+                )} */}
 
                 <div className="form-group">
                   <label htmlFor="firstName">First Name</label>
@@ -441,6 +523,19 @@ const Signup = () => {
 
             {currentStep === 2 && (
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label htmlFor="username">Username</label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    className="form-input"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="password">Password</label>
                   <input
@@ -467,7 +562,7 @@ const Signup = () => {
                   />
                 </div>
 
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                {/* <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label htmlFor="dob">Date of Birth</label>
                   <input
                     type="date"
@@ -478,7 +573,7 @@ const Signup = () => {
                     onChange={handleChange}
                     required
                   />
-                </div>
+                </div> */}
 
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number</label>
@@ -501,7 +596,6 @@ const Signup = () => {
                     className="form-input"
                     value={formData.gender}
                     onChange={handleChange}
-                    required
                   >
                     <option value="">Select Gender</option>
                     <option value="male">Male</option>
