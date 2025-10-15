@@ -1,0 +1,71 @@
+/* src/components/ui/RecommendationCard.css */
+.recommendation-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #00BFA5;
+    transition: transform 0.2s;
+  }
+  
+  .recommendation-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+  
+  .recommendation-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+  }
+  
+  .recommendation-text {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 15px;
+  }
+  
+  .recommendation-text strong {
+    font-weight: 600;
+    color: #444;
+  }
+  
+  .recommendation-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .recommendation-btn {
+    background-color: #f5f5f5;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .recommendation-btn:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .recommendation-btn.primary {
+    background-color: #00BFA5;
+    color: white;
+  }
+  
+  .recommendation-btn.primary:hover {
+    background-color: #00a589;
+  }
+  
+  @media (max-width: 767px) {
+    .recommendation-actions {
+      flex-direction: column;
+    }
+    
+    .recommendation-btn {
+      width: 100%;
+    }
+  }

@@ -1,0 +1,38 @@
+/* src/components/ui/SearchBar.css */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    padding: 8px 15px;
+    width: 250px;
+    transition: all 0.2s;
+  }
+  
+  .search-bar:focus-within {
+    border-color: #00BFA5;
+    box-shadow: 0 0 0 2px rgba(0, 191, 165, 0.2);
+  }
+  
+  .search-bar svg {
+    color: #999;
+  }
+  
+  .search-bar input {
+    border: none;
+    outline: none;
+    width: 100%;
+    margin-left: 10px;
+    font-size: 14px;
+  }
+  
+  .search-bar input::placeholder {
+    color: #aaa;
+  }
+  
+  @media (max-width: 767px) {
+    .search-bar {
+      width: 100%;
+    }
+  }

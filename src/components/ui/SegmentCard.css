@@ -1,0 +1,66 @@
+/* src/components/ui/SegmentCard.css */
+.segment-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  
+  .segment-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .segment-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .segment-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .segment-value {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #00BFA5;
+  }
+  
+  .segment-text {
+    font-size: 13px;
+    color: #666;
+  }
+  
+  @media (max-width: 767px) {
+    .segment-card {
+      padding: 12px 10px;
+    }
+    
+    .segment-icon {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .segment-title {
+      font-size: 14px;
+    }
+    
+    .segment-value {
+      font-size: 18px;
+    }
+    
+    .segment-text {
+      font-size: 12px;
+    }
+  }

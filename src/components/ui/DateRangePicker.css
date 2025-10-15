@@ -1,0 +1,59 @@
+/* src/components/ui/DateRangePicker.css */
+.date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 15px;
+  }
+
+  .date-range-picker select, 
+  .date-range-picker input {
+    border: none;
+    padding: 5px;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .date-range-picker input:disabled {
+    background-color: 
+#f5f5f5;
+    cursor: not-allowed;
+  }
+
+  .date-range-picker button {
+    background-color: 
+#00BFA5;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+
+  .date-range-picker button:hover {
+    background-color: 
+#00a589;
+  }
+
+  @media (max-width: 767px) {
+    .date-range-picker {
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .date-range-picker select,
+    .date-range-picker input {
+      width: 100%;
+    }
+
+    .date-range-picker button {
+      width: 100%;
+      margin-top: 8px;
+    }
+  }

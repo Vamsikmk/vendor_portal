@@ -1,0 +1,85 @@
+/* src/components/charts/ChartComponents.css */
+.chart-container {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  .chart-title {
+    font-size: 18px;
+    color: #333;
+    margin: 0;
+  }
+
+  .chart-controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  .chart-control-btn {
+    background-color: 
+#f5f5f5;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+
+  .chart-control-btn:hover {
+    background-color: 
+#e0e0e0;
+  }
+
+  .chart-control-btn.active {
+    background-color: 
+#00BFA5;
+    color: white;
+  }
+
+  .chart-content {
+    height: 300px;
+    width: 100%;
+  }
+
+  /* Custom tooltip styles */
+  .custom-tooltip {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .tooltip-label {
+    font-weight: bold;
+    margin: 0 0 4px 0;
+    color: #333;
+  }
+
+  .tooltip-value {
+    margin: 0;
+    color: #666;
+  }
+
+  @media (max-width: 767px) {
+    .chart-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .chart-content {
+      height: 250px;
+    }
+  }

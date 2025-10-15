@@ -1,0 +1,299 @@
+/* src/pages/Dashboard.css */
+
+/* Reset and base styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.dashboard-container {
+  max-width: 1400px;
+  margin: 20px auto;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.page-title {
+  font-size: 24px;
+  color: #333;
+  margin: 0;
+}
+
+.dashboard-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* FIXED: Stats grid layout with explicit grid properties */
+.stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+  margin-bottom: 30px !important;
+  width: 100% !important;
+  min-height: auto !important;
+}
+
+/* Ensure stat cards don't break grid */
+.stats-grid > * {
+  min-width: 0;
+  width: 100%;
+  flex: none !important;
+}
+
+/* FIXED: Charts container layout */
+.charts-container {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr !important;
+  gap: 20px !important;
+  margin-bottom: 30px !important;
+  width: 100% !important;
+}
+
+.charts-container > * {
+  min-width: 0;
+  width: 100%;
+  flex: none !important;
+}
+
+/* FIXED: Chart container for Customer Profile section */
+.chart-container {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.chart-title {
+  font-size: 18px;
+  color: #333;
+  margin: 0;
+}
+
+/* FIXED: Segments container layout */
+.segments-container {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 15px !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+}
+
+.segments-container > * {
+  min-width: 0;
+  width: 100%;
+  flex: none !important;
+}
+
+/* FIXED: Recommendations container layout */
+.recommendations-container {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 20px !important;
+  margin-bottom: 30px !important;
+  width: 100% !important;
+}
+
+.recommendations-container > * {
+  min-width: 0;
+  width: 100%;
+  flex: none !important;
+}
+
+/* Loading state */
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #00BFA5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error state */
+.dashboard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.dashboard-error h2 {
+  color: #f44336;
+  margin-bottom: 10px;
+}
+
+.retry-button {
+  background-color: #00BFA5;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.retry-button:hover {
+  background-color: #00a589;
+}
+
+/* Table loading and error states */
+.table-loading, 
+.table-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.table-error {
+  color: #f44336;
+}
+
+/* Section spacing */
+.section-header + .stats-grid,
+.section-header + .chart-container,
+.section-header + .table-loading,
+.section-header + .table-error,
+.section-header + .table-container {
+  margin-top: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .segments-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .recommendations-container {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .charts-container {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .dashboard-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 767px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .segments-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .dashboard-controls {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .segments-container {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .dashboard-container {
+    padding: 0 15px;
+  }
+}
+
+/* Fix for sortable table headers */
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-direction: row;
+}
+
+/* Prevent any flex interference with grid layouts */
+.stats-grid,
+.charts-container,
+.segments-container,
+.recommendations-container {
+  flex: none !important;
+  display: grid !important;
+}
+
+/* Ensure proper spacing between sections */
+.dashboard-container > * + * {
+  margin-top: 0;
+}
+
+/* Fix for any global flex styles that might interfere */
+.dashboard-container * {
+  box-sizing: border-box;
+}
+
+/* Ensure grid items have proper sizing */
+.stat-card,
+.segment-card,
+.recommendation-card {
+  width: 100%;
+  min-width: 0;
+}

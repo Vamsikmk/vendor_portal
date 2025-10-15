@@ -1,0 +1,133 @@
+/* src/components/ui/ProductModal.css */
+
+/* Import the base modal styles - this will be handled by importing Modal.css in ProductModal.js */
+
+/* Product Modal Specific Styles */
+.product-modal .form-control[readonly] {
+    background-color: #f9f9f9;
+    cursor: not-allowed;
+  }
+  
+  .price-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+  }
+  
+  .price-input-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .price-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 5px;
+  }
+  
+  .discount-preview {
+    background-color: #e8f5e9;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    text-align: center;
+  }
+  
+  .category-preview {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .category-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+  }
+  
+  .category-gut {
+    background-color: #e3f2fd;
+    color: #2196f3;
+  }
+  
+  .category-immune {
+    background-color: #e8f5e9;
+    color: #4caf50;
+  }
+  
+  .category-cognitive {
+    background-color: #f3e5f5;
+    color: #9c27b0;
+  }
+  
+  .category-skin {
+    background-color: #fff8e1;
+    color: #ff9800;
+  }
+  
+  .category-heart {
+    background-color: #ffebee;
+    color: #f44336;
+  }
+  
+  .clinical-status-preview {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .clinical-proven {
+    background-color: #e8f5e9;
+    color: #4caf50;
+  }
+  
+  .clinical-ongoing {
+    background-color: #fff8e1;
+    color: #ff9800;
+  }
+  
+  .clinical-none {
+    background-color: #f5f5f5;
+    color: #757575;
+  }
+  
+  .form-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .form-section:last-of-type {
+    border-bottom: none;
+  }
+  
+  .form-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .price-group {
+      grid-template-columns: 1fr;
+    }
+    
+    .category-preview {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
