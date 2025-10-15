@@ -10,6 +10,7 @@ import MyProducts from './pages/MyProducts';
 import Header from './components/layout/Header';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import ForgotPassword from './pages/ForgotPassword';
 import './App.css';
 
 function App() {
@@ -23,7 +24,9 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/signup-pending" element={<SignupPending />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
-            
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+
+
             {/* Protected routes */}
             <Route
               path="/"
@@ -38,7 +41,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/products"
               element={
@@ -52,7 +55,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             {/* Add more protected routes as needed */}
             {/* <Route
               path="/analytics"
@@ -67,7 +70,7 @@ function App() {
                 </ProtectedRoute>
               }
             /> */}
-            
+
             {/* <Route
               path="/settings"
               element={

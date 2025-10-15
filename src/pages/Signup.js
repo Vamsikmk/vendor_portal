@@ -261,6 +261,11 @@ const Signup = () => {
         return;
       }
 
+      if (formData.password.length > 72) {
+        setErrorMessage('Password cannot be longer than 72 characters');
+        return;
+      }
+
       if (!formData.confirmPassword.trim()) {
         setErrorMessage('Please confirm your password');
         return;

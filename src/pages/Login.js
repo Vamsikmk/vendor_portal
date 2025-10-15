@@ -1,6 +1,6 @@
 // src/pages/Login.js
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Login.css';
 
@@ -13,7 +13,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  // const location = useLocation();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,6 +188,21 @@ const Login = () => {
           )} */}
 
           <form onSubmit={handleSubmit}>
+            {/* Success message from signup or password reset */}
+            {(location.state?.signupSuccess || location.state?.resetSuccess) && (
+              <div className="success-message" style={{
+                backgroundColor: '#e8f5e9',
+                color: '#2e7d32',
+                padding: '12px',
+                borderRadius: '6px',
+                marginBottom: '20px',
+                border: '1px solid #4caf50'
+              }}>
+                {location.state.message}
+              </div>
+            )}
+
+            {/* Error message */}
             {errorMessage && (
               <div className="error-message">
                 {errorMessage}

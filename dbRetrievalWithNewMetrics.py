@@ -12,10 +12,25 @@ from datetime import timedelta
 from jose import JWTError, jwt
 
 
-cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:3000")
-print(f"🔍 Raw CORS_ORIGINS env: {cors_origins_env}")
-cors_origins = [origin.strip() for origin in cors_origins_env.split(",")]
-print(f"🔍 Parsed CORS origins: {cors_origins}")
+# Get CORS origins from environment
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+cors_origins = cors_origins_env.split(",") if cors_origins_env else []
+
+# Add default origins if empty
+if not cors_origins:
+    cors_origins = [
+        "http://localhost:8000",
+        "http://localhost:3000",
+        "https://3b6akxpfpr.us-east-2.awsapprunner.com"
+    ]
+
+# Print for debugging
+print(f"🔧 CORS Origins: {cors_origins}")
+
+# cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+# print(f"🔍 Raw CORS_ORIGINS env: {cors_origins_env}")
+# cors_origins = [origin.strip() for origin in cors_origins_env.split(",")]
+# print(f"🔍 Parsed CORS origins: {cors_origins}")
 
 # Import from auth.py
 from auth import (
@@ -663,6 +678,15 @@ class UserRegistration(BaseModel):
     phone: Optional[str] = None
     professional_data: Optional[ProfessionalData] = None
 
+class IdentityVerification(BaseModel):
+    username: str
+    email: str
+
+class PasswordReset(BaseModel):
+    username: str
+    email: str
+    new_password: str
+
 @app.post("/register")
 async def register_user(user_data: UserRegistration, db: Session = Depends(get_db)):
     """
@@ -830,6 +854,112 @@ async def register_user(user_data: UserRegistration, db: Session = Depends(get_d
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to register user: {str(e)}"
         )
+    
+@app.post("/verify-identity")
+async def verify_identity(data: IdentityVerification, db: Session = Depends(get_db)):
+    """
+    Verify if username and email match in database
+    """
+    try:
+        query = text("""
+            SELECT user_id 
+            FROM public.user_account 
+            WHERE username = :username AND email = :email
+        """)
+        
+        result = db.execute(query, {
+            "username": data.username,
+            "email": data.email
+        }).fetchone()
+        
+        if result:
+            return {"verified": True, "message": "Identity verified"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Username and email do not match"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying identity: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to verify identity"
+        )
+
+    # Endpoint 2: Reset password
+@app.post("/reset-password")
+async def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
+    """Reset user password after identity verification"""
+    try:
+        # DEBUG: Log password info
+        password_str = data.new_password
+        password_length_chars = len(password_str)
+        password_length_bytes = len(password_str.encode('utf-8'))
+        
+        logger.info(f"Password length in characters: {password_length_chars}")
+        logger.info(f"Password length in bytes: {password_length_bytes}")
+        
+        # Validate password length (bcrypt limit is 72 BYTES, not characters)
+        if password_length_bytes > 72:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Password is too long ({password_length_bytes} bytes). Maximum is 72 bytes."
+            )
+        
+        # Verify username and email match
+        verify_query = text("""
+            SELECT user_id 
+            FROM public.user_account 
+            WHERE username = :username AND email = :email
+        """)
+        
+        user = db.execute(verify_query, {
+            "username": data.username,
+            "email": data.email
+        }).fetchone()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Username and email do not match"
+            )
+        
+        # Hash the new password
+        logger.info("Attempting to hash password...")
+        new_password_hash = get_password_hash(password_str)
+        logger.info("Password hashed successfully")
+        
+        # Update password
+        update_query = text("""
+            UPDATE public.user_account 
+            SET password_hash = :password_hash 
+            WHERE username = :username AND email = :email
+        """)
+        
+        db.execute(update_query, {
+            "password_hash": new_password_hash,
+            "username": data.username,
+            "email": data.email
+        })
+        
+        db.commit()
+        
+        logger.info(f"Password reset successful for user: {data.username}")
+        
+        return {"success": True, "message": "Password reset successful"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error resetting password: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reset password: {str(e)}"
+        )
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
