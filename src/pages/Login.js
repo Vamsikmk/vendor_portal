@@ -1,5 +1,5 @@
 // src/pages/Login.js
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Login.css';
@@ -14,6 +14,17 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const typeParam = urlParams.get('type');
+
+    // If type parameter exists and is valid, pre-select it
+    if (typeParam && (typeParam === 'customer' || typeParam === 'vendor')) {
+      setUserType(typeParam);
+      console.log(`✅ User type pre-selected from URL: ${typeParam}`);
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -18,7 +18,7 @@ function MyProducts() {
   const [showExcelImportModal, setShowExcelImportModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     search: '',
@@ -29,7 +29,9 @@ function MyProducts() {
   });
 
   // FIXED: Use the correct API URL and add authentication
-  const API_BASE_URL = 'https://3b6akxpfpr.us-east-2.awsapprunner.com';
+  // const API_BASE_URL = 'https://3b6akxpfpr.us-east-2.awsapprunner.com';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+
 
   // Function to get auth headers
   const getAuthHeaders = () => {
@@ -46,14 +48,14 @@ function MyProducts() {
     setError(null);
     try {
       console.log('🔍 Fetching products from:', `${API_BASE_URL}/api/products`);
-      
+
       const response = await fetch(`${API_BASE_URL}/api/products`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
-      
+
       console.log('Products response status:', response.status);
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           setError('Authentication required. Please log in.');
@@ -63,10 +65,10 @@ function MyProducts() {
         console.error('❌ Response error:', errorText);
         throw new Error(`Failed to fetch products: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('✅ Products data:', data);
-      
+
       setProducts(Array.isArray(data.products) ? data.products : []);
       setFilteredProducts(Array.isArray(data.products) ? data.products : []);
     } catch (error) {
@@ -193,11 +195,11 @@ function MyProducts() {
           headers: getAuthHeaders(),
           body: JSON.stringify(productData)
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to create product: ${response.status}`);
         }
-        
+
         alert('Product created successfully!');
       } else {
         // FIXED: Make actual API call to update product
@@ -207,11 +209,11 @@ function MyProducts() {
           headers: getAuthHeaders(),
           body: JSON.stringify(productData)
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to update product: ${response.status}`);
         }
-        
+
         alert('Product updated successfully!');
       }
       setShowProductModal(false);
@@ -226,18 +228,18 @@ function MyProducts() {
   const handleExcelImport = async (importedProducts) => {
     try {
       console.log('Importing products:', importedProducts);
-      
+
       // FIXED: Make actual API call to bulk create products
       const response = await fetch(`${API_BASE_URL}/api/products/bulk`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ products: importedProducts })
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to import products: ${response.status}`);
       }
-      
+
       const result = await response.json();
       alert(`Successfully imported ${result.imported_count || importedProducts.length} products!`);
       setShowExcelImportModal(false);
@@ -251,7 +253,7 @@ function MyProducts() {
         created_at: new Date().toISOString(),
         impressions: Math.floor(Math.random() * 3000) + 500 // Mock impressions
       }));
-      
+
       setProducts(prev => [...prev, ...productsWithIds]);
       alert(`Products added locally (${importedProducts.length} products). Note: ${error.message}`);
       setShowExcelImportModal(false);
@@ -267,11 +269,11 @@ function MyProducts() {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to delete product: ${response.status}`);
       }
-      
+
       alert('Product deleted successfully!');
       setShowDeleteModal(false);
       fetchProducts(); // Refresh the products list
@@ -291,11 +293,11 @@ function MyProducts() {
         headers: getAuthHeaders(),
         body: JSON.stringify(promotionData)
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to promote product: ${response.status}`);
       }
-      
+
       alert('Product promotion started successfully!');
       setShowPromoteModal(false);
     } catch (error) {
@@ -355,8 +357,8 @@ function MyProducts() {
       <div className="search-filter-container">
         <div className="search-bar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
             type="text"
@@ -365,7 +367,7 @@ function MyProducts() {
             onChange={(e) => handleFilterChange('search', e.target.value)}
           />
         </div>
-        
+
         <div className="filters">
           <select
             className="filter-select"
@@ -379,7 +381,7 @@ function MyProducts() {
             <option value="immune">Immune Health</option>
             <option value="heart">Heart Health</option>
           </select>
-          
+
           <select
             className="filter-select"
             value={filters.impressions}
@@ -390,7 +392,7 @@ function MyProducts() {
             <option value="medium">Medium (500-999)</option>
             <option value="low">Low (0-499)</option>
           </select>
-          
+
           <select
             className="filter-select"
             value={filters.clinicalStatus}
@@ -401,7 +403,7 @@ function MyProducts() {
             <option value="ongoing">Ongoing Trials</option>
             <option value="none">No Trials</option>
           </select>
-          
+
           <select
             className="filter-select"
             value={filters.sortBy}
