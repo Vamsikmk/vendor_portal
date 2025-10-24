@@ -11,6 +11,7 @@ import os
 from datetime import timedelta
 from jose import JWTError, jwt
 from patient_management import router as patient_router
+from employee_management import router as employee_router
 from config import CORS_ORIGINS as cors_origins
 
 
@@ -70,6 +71,8 @@ app.add_middleware(
 
 # Include patient management router
 app.include_router(patient_router)
+# Include employee management router
+app.include_router(employee_router)
 
 # PostgreSQL connection details
 DATABASE_URL = "postgresql://postgres:db_admin@vendor-portal-db.cszf6hop4o2t.us-east-2.rds.amazonaws.com:5432/mannbiome"
@@ -790,6 +793,78 @@ async def register_user(user_data: UserRegistration, db: Session = Depends(get_d
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to insert user: {str(insert_error)}"
             )
+
+        # If user is a vendor, create vendor record automatically
+        vendor_id = None
+        if user_data.role == 'vendor':
+            try:
+                # Generate next vendor_id
+                max_vendor_query = text("""
+                    SELECT vendor_id FROM public.vendor 
+                    ORDER BY vendor_id DESC LIMIT 1
+                """)
+                max_vendor = db.execute(max_vendor_query).fetchone()
+                
+                if max_vendor and max_vendor[0]:
+                    # Extract number from V001, V002, etc.
+                    last_num = int(max_vendor[0][1:])
+                    vendor_id = f"V{str(last_num + 1).zfill(3)}"
+                else:
+                    vendor_id = "V001"
+                
+                logger.info(f"Creating vendor with ID: {vendor_id}")
+                
+                # Create vendor record with basic info
+                company_name = f"{user_data.first_name} {user_data.last_name} Vendor"
+                contact_info = f"Email: {user_data.email}"
+                if user_data.phone:
+                    contact_info += f"\nPhone: {user_data.phone}"
+                
+                insert_vendor_query = text("""
+                    INSERT INTO public.vendor (
+                        vendor_id,
+                        user_id,
+                        company_name,
+                        contact_info,
+                        products_offered,
+                        status,
+                        created_at,
+                        updated_at
+                    ) VALUES (
+                        :vendor_id,
+                        :user_id,
+                        :company_name,
+                        :contact_info,
+                        :products_offered,
+                        :status,
+                        :created_at,
+                        :updated_at
+                    )
+                """)
+                
+                vendor_params = {
+                    "vendor_id": vendor_id,
+                    "user_id": user_id,
+                    "company_name": company_name,
+                    "contact_info": contact_info,
+                    "products_offered": "To be updated",
+                    "status": "active",
+                    "created_at": now,
+                    "updated_at": now
+                }
+                
+                db.execute(insert_vendor_query, vendor_params)
+                db.commit()
+                logger.info(f"✅ Vendor created successfully with ID: {vendor_id}")
+                
+            except Exception as vendor_error:
+                logger.error(f"❌ Error creating vendor: {str(vendor_error)}")
+                # Rollback and clean up user if vendor creation fails
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to create vendor record: {str(vendor_error)}"
+                )
         
         # If user is a doctor or HCP, store professional data
         if user_data.professional_data and (user_data.role == 'doctor' or user_data.role == 'hcp'):
@@ -846,7 +921,8 @@ async def register_user(user_data: UserRegistration, db: Session = Depends(get_d
                 # Log the error but don't fail the registration
                 logger.warning(f"Error storing professional data: {str(prof_error)}")
         
-        return {
+        # Prepare response with vendor_id if applicable
+        response_data = {
             "success": True,
             "message": "User registered successfully",
             "user_id": user_id,
@@ -854,6 +930,11 @@ async def register_user(user_data: UserRegistration, db: Session = Depends(get_d
             "status": user_data.status,
             "role": user_data.role
         }
+        
+        if vendor_id:
+            response_data["vendor_id"] = vendor_id
+        
+        return response_data
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
