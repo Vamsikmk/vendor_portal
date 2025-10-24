@@ -10,11 +10,18 @@ from typing import Optional, List
 import os
 from datetime import timedelta
 from jose import JWTError, jwt
+from patient_management import router as patient_router
+from config import CORS_ORIGINS as cors_origins
+
+
 
 
 # Get CORS origins from environment
-cors_origins_env = os.getenv("CORS_ORIGINS", "")
-cors_origins = cors_origins_env.split(",") if cors_origins_env else []
+# cors_origins_env = os.getenv("CORS_ORIGINS", "")
+# cors_origins = cors_origins_env.split(",") if cors_origins_env else []
+
+print(f"🔧 Initial CORS Origins from env: {cors_origins}")
+
 
 # Add default origins if empty
 if not cors_origins:
@@ -60,6 +67,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# Include patient management router
+app.include_router(patient_router)
 
 # PostgreSQL connection details
 DATABASE_URL = "postgresql://postgres:db_admin@vendor-portal-db.cszf6hop4o2t.us-east-2.rds.amazonaws.com:5432/mannbiome"

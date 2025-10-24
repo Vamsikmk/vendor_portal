@@ -1,10 +1,11 @@
 // src/services/axiosService.js
 import axios from 'axios';
 import authService from './authService';
+import { API_CONFIG } from '../config';
 
 // Create a new Axios instance with custom config
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8000', // Update with your backend URL
+  baseURL: API_CONFIG.BASE_URL || 'http://localhost:8000', // Update with your backend URL
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,12 +17,12 @@ axiosInstance.interceptors.request.use(
   config => {
     // Get the token from localStorage
     const token = authService.getToken();
-    
+
     // If token exists, add it to the Authorization header
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   error => {
@@ -41,7 +42,7 @@ axiosInstance.interceptors.response.use(
       authService.logout();
       // The logout function already redirects to login
     }
-    
+
     return Promise.reject(error);
   }
 );
