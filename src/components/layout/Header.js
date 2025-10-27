@@ -156,7 +156,8 @@ const Header = () => {
             </Link>
 
             {/* Management dropdown - only for vendors */}
-            {isVendor && (
+            {/* Management dropdown - for vendors and employees */}
+            {(user?.role === 'vendor' || user?.role === 'employee') && (
               <div className="nav-dropdown" ref={managementDropdownRef}>
                 <button
                   className={`nav-dropdown-trigger ${isActiveLink('/management') ? 'active' : ''}`}
@@ -173,25 +174,28 @@ const Header = () => {
 
                 {showManagementDropdown && (
                   <div className="nav-dropdown-menu">
+                    {/* Only show Patients for vendors */}
+                    {user?.role === 'vendor' && (
+                      <button
+                        className="nav-dropdown-item"
+                        onClick={() => handleNavigation('/management/patients')}
+                      >
+                        <span className="item-icon">👥</span>
+                        <div className="item-content">
+                          <div className="item-title">Patients</div>
+                          <div className="item-description">Manage patient accounts</div>
+                        </div>
+                      </button>
+                    )}
+                    {/* Employees - available to all vendors and employees */}
                     <button
                       className="nav-dropdown-item"
-                      onClick={() => handleNavigation('/management/patients')}
-                    >
-                      <span className="item-icon">👥</span>
-                      <div className="item-content">
-                        <div className="item-title">Patients</div>
-                        <div className="item-description">Manage patient accounts</div>
-                      </div>
-                    </button>
-                    <button
-                      className="nav-dropdown-item disabled"
-                      disabled
-                      title="Coming soon"
+                      onClick={() => handleNavigation('/management/employees')}
                     >
                       <span className="item-icon">👨‍💼</span>
                       <div className="item-content">
                         <div className="item-title">Employees</div>
-                        <div className="item-description">Manage team members (Coming soon)</div>
+                        <div className="item-description">Manage team members</div>
                       </div>
                     </button>
                   </div>

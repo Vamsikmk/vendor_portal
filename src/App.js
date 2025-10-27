@@ -7,7 +7,8 @@ import Signup from './pages/Signup';
 import SignupPending from './pages/SignupPending';
 import Unauthorized from './pages/Unauthorized';
 import MyProducts from './pages/MyProducts';
-import PatientManagement from './pages/PatientManagement';
+import Employees from './pages/Employees';
+import Patients from './pages/PatientManagement';
 import Header from './components/layout/Header';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -26,6 +27,7 @@ function App() {
             <Route path="/signup-pending" element={<SignupPending />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+
 
             {/* Protected routes */}
             <Route
@@ -56,15 +58,29 @@ function App() {
               }
             />
 
-            {/* Patient Management - Vendor only */}
+            {/* Management Routes */}
             <Route
               path="/management/patients"
               element={
-                <ProtectedRoute requiredRole="vendor">
+                <ProtectedRoute>
                   <>
                     <Header />
                     <div className="content">
-                      <PatientManagement />
+                      <Patients />
+                    </div>
+                  </>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/management/employees"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Header />
+                    <div className="content">
+                      <Employees />
                     </div>
                   </>
                 </ProtectedRoute>

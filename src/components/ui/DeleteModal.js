@@ -2,20 +2,30 @@
 import React from 'react';
 import './Modal.css';
 
-function DeleteModal({ product, onConfirm, onClose }) {
+function DeleteModal({
+  isOpen,
+  onConfirm,
+  onClose,
+  title = "Confirm Deletion",
+  message = "Are you sure you want to delete this item? This action cannot be undone.",
+  confirmText = "Delete",
+  cancelText = "Cancel"
+}) {
+  if (!isOpen) return null;
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-content delete-modal">
-        <h2 className="form-title">Confirm Deletion</h2>
+        <h2 className="form-title">{title}</h2>
         <p className="delete-message">
-          Are you sure you want to delete <strong>{product?.name}</strong>? This action cannot be undone.
+          {message}
         </p>
         <div className="form-actions">
           <button type="button" className="cancel-btn" onClick={onClose}>
-            Cancel
+            {cancelText}
           </button>
           <button type="button" className="delete-btn" onClick={onConfirm}>
-            Delete Product
+            {confirmText}
           </button>
         </div>
       </div>
