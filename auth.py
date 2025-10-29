@@ -26,6 +26,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
+    user_id: Optional[int] = None  # ✅ ADDED user_id field
 
 class User(BaseModel):
     user_id: int
@@ -99,9 +100,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        role: str = payload.get("role")  # ✅ FIXED: Extract role from JWT
+        user_id: int = payload.get("user_id")  # ✅ FIXED: Extract user_id from JWT
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        print("🔍 [DEBUG] Decoded JWT payload:", payload)
+        token_data = TokenData(username=username, role=role, user_id=user_id)  # ✅ FIXED: Include role and user_id
         return token_data
     except JWTError:
         raise credentials_exception
