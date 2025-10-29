@@ -1,4 +1,5 @@
 # dBretreivalWithNewMetrics.py
+from database import get_db, engine, SessionLocal, Base, metadata
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,25 +75,6 @@ app.include_router(patient_router)
 # Include employee management router
 app.include_router(employee_router)
 
-# PostgreSQL connection details
-DATABASE_URL = "postgresql://postgres:db_admin@vendor-portal-db.cszf6hop4o2t.us-east-2.rds.amazonaws.com:5432/mannbiome"
-
-# Create SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-metadata = MetaData()
-
-
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 # Complete the OAuth setup with our get_db function
 def get_current_user_with_db(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -142,7 +124,6 @@ def test_cors_config():
     return {
         "message": "CORS test endpoint", 
         "cors_origins": cors_origins,
-        "cors_origins_env": cors_origins_env
     }
 
 # OAuth login endpoint

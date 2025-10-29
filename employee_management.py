@@ -16,6 +16,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Literal
 from datetime import datetime
 import re
+from database import get_db 
 
 # Import existing auth functions
 from auth import get_current_user, get_password_hash, TokenData
@@ -23,15 +24,6 @@ from auth import get_current_user, get_password_hash, TokenData
 # Router setup
 router = APIRouter(prefix="/api/vendor", tags=["Vendor Employee Management"])
 
-# Database dependency - imported at function call time to avoid circular import
-def get_db():
-    """Get database session - avoiding circular import by lazy loading"""
-    from dbRetrievalWithNewMetrics import SessionLocal
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # ==================== Pydantic Models ====================
 
