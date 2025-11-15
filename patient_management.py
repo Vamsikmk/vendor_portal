@@ -1,25 +1,41 @@
 """
-Patient Management API Endpoints for Vendors
+Patient Management API Endpoints for Vendors AND Employees
 File: patient_management.py
 
-FINAL VERSION with:
+UPDATED VERSION with:
+- Role-based access control for employees (manager, editor, viewer)
+- Proper permission checking for all roles
 - Status filtering support
-- customer_id in response for proper Patient ID display
+- Customer_id in response for proper Patient ID display
+
+Permission Matrix:
+- Vendor Admin: Full access (create, view, edit, deactivate)
+- Manager: Can view, edit, deactivate patients
+- Editor: Can view and edit patients
+- Viewer: Can only view patients
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 import re
 
 # Import your existing auth functions and database session
 from auth import get_current_user, get_password_hash, TokenData
-from database import get_db
 
 router = APIRouter(prefix="/api/vendor", tags=["Vendor Patient Management"])
+
+# Database dependency - imported at function call time to avoid circular import
+def get_db():  # ✅ Just use get_db as the function name
+    from dbRetrievalWithNewMetrics import SessionLocal  # Import INSIDE function
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # ==================== Pydantic Models ====================
 
@@ -49,50 +65,58 @@ class PatientCreateRequest(BaseModel):
         }
 
 class PatientUpdateRequest(BaseModel):
-    """Request model for updating patient information"""
+    """Request model for updating a patient"""
+    first_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
     email: Optional[EmailStr] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
     phone: Optional[str] = None
     age: Optional[int] = None
     gender: Optional[str] = None
-    status: Optional[str] = None
 
 class PatientResponse(BaseModel):
-    """Response model for patient information"""
+    """Response model for patient data"""
+    customer_id: int
     user_id: int
-    customer_id: Optional[int] = None  # ✅ ADDED for Patient ID display
     username: str
     email: str
     first_name: str
     last_name: str
     phone: Optional[str]
-    age: Optional[int]
-    gender: Optional[str]
-    role: str
     status: str
     created_at: datetime
+    created_by_vendor_id: Optional[str]
+    age: Optional[int] = None
+    gender: Optional[str] = None
     
-    class Config:
-        orm_mode = True
-
-class PatientsListResponse(BaseModel):
+class PatientListResponse(BaseModel):
     """Response model for list of patients"""
-    total: int
     patients: List[PatientResponse]
+    total_count: int
+    vendor_id: str
+
+class UserPermissions(BaseModel):
+    """User permission information for patient management"""
+    user_id: int
+    vendor_id: str
+    user_type: Literal['vendor_admin', 'manager', 'editor', 'viewer']
+    can_create_patients: bool
+    can_view_patients: bool
+    can_edit_patients: bool
+    can_deactivate_patients: bool
 
 # ==================== Helper Functions ====================
+
+def validate_username(username: str) -> bool:
+    """Validate username format"""
+    pattern = r'^[a-zA-Z0-9_]{3,50}$'
+    return bool(re.match(pattern, username))
 
 def validate_phone(phone: str) -> bool:
     """Validate phone number format"""
     if not phone:
-        return True  # Optional field
+        return True  # Phone is optional
     cleaned = re.sub(r'[\s\-\(\)]', '', phone)
     return bool(re.match(r'^\+?[0-9]{10,15}$', cleaned))
-
-def validate_username(username: str) -> bool:
-    """Validate username format"""
-    return bool(re.match(r'^[a-zA-Z0-9_]{3,50}$', username))
 
 def get_vendor_id_from_user(db: Session, user_id: int) -> Optional[str]:
     """Get vendor_id from user_id"""
@@ -104,6 +128,130 @@ def get_vendor_id_from_user(db: Session, user_id: int) -> Optional[str]:
     result = db.execute(query, {"user_id": user_id}).fetchone()
     return result[0] if result else None
 
+def get_employee_info(db: Session, user_id: int) -> Optional[dict]:
+    """Get employee information including role and vendor_id"""
+    query = text("""
+        SELECT 
+            ve.employee_id,
+            ve.vendor_id,
+            ve.employee_role,
+            ve.status
+        FROM public.vendor_employee ve
+        WHERE ve.user_id = :user_id
+    """)
+    result = db.execute(query, {"user_id": user_id}).fetchone()
+    
+    if result:
+        return {
+            'employee_id': result[0],
+            'vendor_id': result[1],
+            'employee_role': result[2],
+            'status': result[3]
+        }
+    return None
+
+def get_user_permissions(db: Session, current_user: TokenData) -> UserPermissions:
+    """
+    Get user permissions for patient management based on role
+    
+    Permission Matrix:
+    - Vendor Admin: Full access
+    - Manager: Can view, edit, deactivate patients
+    - Editor: Can view and edit patients  
+    - Viewer: Can only view patients
+    """
+    # Get user info
+    user_query = text("""
+        SELECT user_id, role 
+        FROM public.user_account 
+        WHERE username = :username
+    """)
+    user_result = db.execute(user_query, {"username": current_user.username}).fetchone()
+    
+    if not user_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    user_id = user_result[0]
+    role = user_result[1]
+    
+    # Check if user is vendor (admin)
+    if role == 'vendor':
+        vendor_id = get_vendor_id_from_user(db, user_id)
+        if not vendor_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendor profile not found"
+            )
+        
+        return UserPermissions(
+            user_id=user_id,
+            vendor_id=vendor_id,
+            user_type='vendor_admin',
+            can_create_patients=True,
+            can_view_patients=True,
+            can_edit_patients=True,
+            can_deactivate_patients=True
+        )
+    
+    # Check if user is employee
+    elif role == 'employee':
+        employee_info = get_employee_info(db, user_id)
+        if not employee_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Employee profile not found"
+            )
+        
+        if employee_info['status'] != 'active':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Employee account is inactive"
+            )
+        
+        employee_role = employee_info['employee_role']
+        vendor_id = employee_info['vendor_id']
+        
+        # Set permissions based on employee role
+        if employee_role == 'manager':
+            return UserPermissions(
+                user_id=user_id,
+                vendor_id=vendor_id,
+                user_type='manager',
+                can_create_patients=True,
+                can_view_patients=True,
+                can_edit_patients=True,
+                can_deactivate_patients=True
+            )
+        elif employee_role == 'editor':
+            return UserPermissions(
+                user_id=user_id,
+                vendor_id=vendor_id,
+                user_type='editor',
+                can_create_patients=True,
+                can_view_patients=True,
+                can_edit_patients=True,
+                can_deactivate_patients=False
+            )
+        else:  # viewer
+            return UserPermissions(
+                user_id=user_id,
+                vendor_id=vendor_id,
+                user_type='viewer',
+                can_create_patients=False,
+                can_view_patients=True,
+                can_edit_patients=False,
+                can_deactivate_patients=False
+            )
+    
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only vendors and employees can access patient management"
+        )
+
 # ==================== API Endpoints ====================
 
 @router.post("/patients", status_code=status.HTTP_201_CREATED)
@@ -113,46 +261,21 @@ async def create_patient(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new patient account (vendor only)
+    Create a new patient account
     
-    ✨ AUTOMATIC CUSTOMER CREATION ✨
-    The database trigger automatically creates the customer record!
-    
-    - **username**: Unique username (3-50 chars, alphanumeric + underscore)
-    - **email**: Valid email address
-    - **password**: Password (min 8 characters)
-    - **first_name**: Patient's first name
-    - **last_name**: Patient's last name
-    - **phone**: Phone number (optional)
-    - **age**: Patient age (optional)
-    - **gender**: Patient gender (optional)
+    **Permissions:** Vendor Admin, Manager, Editor
     """
     try:
-        # Step 1: Verify the current user is a vendor
-        user_query = text("""
-            SELECT user_id, role 
-            FROM public.user_account 
-            WHERE username = :username
-        """)
-        user_result = db.execute(user_query, {"username": current_user.username}).fetchone()
+        # Step 1: Check permissions
+        permissions = get_user_permissions(db, current_user)
         
-        if not user_result or user_result[1] != 'vendor':
+        if not permissions.can_create_patients:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only vendors can create patient accounts"
+                detail="You don't have permission to create patients"
             )
         
-        vendor_user_id = user_result[0]
-        
-        # Step 2: Get vendor_id for this user
-        vendor_id = get_vendor_id_from_user(db, vendor_user_id)
-        if not vendor_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Vendor profile not found for this user"
-            )
-        
-        # Step 3: Validate input
+        # Step 2: Validate input
         if not validate_username(patient_data.username):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -165,7 +288,7 @@ async def create_patient(
                 detail="Invalid phone number format"
             )
         
-        # Step 4: Check if username already exists
+        # Step 3: Check if username already exists
         username_check = text("""
             SELECT username FROM public.user_account WHERE username = :username
         """)
@@ -175,7 +298,7 @@ async def create_patient(
                 detail="Username already exists"
             )
         
-        # Step 5: Check if email already exists
+        # Step 4: Check if email already exists
         email_check = text("""
             SELECT email FROM public.user_account WHERE email = :email
         """)
@@ -185,21 +308,18 @@ async def create_patient(
                 detail="Email already exists"
             )
         
-        # Step 6: Hash password
+        # Step 5: Hash password
         hashed_password = get_password_hash(patient_data.password)
         
-        # Step 7: Insert into user_account table
-        # ✨ The trigger will automatically create the customer record! ✨
+        # Step 6: Insert into user_account table
         insert_user_query = text("""
             INSERT INTO public.user_account 
-            (username, password_hash, email, first_name, last_name, role, 
-             phone, age, gender, status, created_by_vendor_id, created_at)
+            (username, password_hash, email, first_name, last_name, role, phone, age, gender, status, created_at)
             VALUES 
-            (:username, :password_hash, :email, :first_name, :last_name, 'patient', 
-             :phone, :age, :gender, 'active', :vendor_id, CURRENT_TIMESTAMP)
-            RETURNING user_id, username, email, first_name, last_name, phone, age, gender, role, status, created_at
+            (:username, :password_hash, :email, :first_name, :last_name, 'patient', :phone, :age, :gender, 'active', CURRENT_TIMESTAMP)
+            RETURNING user_id
         """)
-        
+
         user_result = db.execute(insert_user_query, {
             "username": patient_data.username,
             "password_hash": hashed_password,
@@ -207,37 +327,42 @@ async def create_patient(
             "first_name": patient_data.first_name,
             "last_name": patient_data.last_name,
             "phone": patient_data.phone,
-            "age": patient_data.age,
-            "gender": patient_data.gender,
-            "vendor_id": vendor_id  # ✨ This triggers automatic customer creation
+            "age": patient_data.age,          # ✅ Added
+            "gender": patient_data.gender      # ✅ Added
         }).fetchone()
         
+        new_user_id = user_result[0]
+        
+        # Step 7: Insert into customers.customer table with vendor tracking
+        insert_customer_query = text("""
+            INSERT INTO customers.customer 
+            (user_id, phone, created_by_vendor_id, created_at, updated_at)
+            VALUES 
+            (:user_id, :phone, :vendor_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING customer_id
+        """)
+
+        customer_result = db.execute(insert_customer_query, {
+            "user_id": new_user_id,
+            "phone": patient_data.phone,
+            "vendor_id": permissions.vendor_id
+        }).fetchone()
+        
+        new_customer_id = customer_result[0]
+        
+        # Step 8: Commit transaction
         db.commit()
         
-        new_user_id = user_result[0]
-        print(f"✅ Created patient user_id: {new_user_id} (customer auto-created by trigger)")
-        
-        # ✅ Get the customer_id for the response
-        customer_query = text("""
-            SELECT customer_id FROM customers.customer WHERE user_id = :user_id
-        """)
-        customer_result = db.execute(customer_query, {"user_id": new_user_id}).fetchone()
-        customer_id = customer_result[0] if customer_result else None
-        
-        return PatientResponse(
-            user_id=user_result[0],
-            customer_id=customer_id,  # ✅ Include customer_id
-            username=user_result[1],
-            email=user_result[2],
-            first_name=user_result[3],
-            last_name=user_result[4],
-            phone=user_result[5],
-            age=user_result[6],
-            gender=user_result[7],
-            role=user_result[8],
-            status=user_result[9],
-            created_at=user_result[10]
-        )
+        # Step 9: Return success response
+        return {
+            "message": "Patient account created successfully",
+            "customer_id": new_customer_id,
+            "user_id": new_user_id,
+            "username": patient_data.username,
+            "email": patient_data.email,
+            "created_by_vendor": permissions.vendor_id,
+            "created_by_user_type": permissions.user_type
+        }
         
     except HTTPException:
         db.rollback()
@@ -249,429 +374,491 @@ async def create_patient(
             detail=f"Failed to create patient: {str(e)}"
         )
 
-@router.get("/patients", response_model=PatientsListResponse)
-async def list_patients(
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = None,
-    status_filter: Optional[str] = None,  # ✅ ADDED status filtering
+
+@router.get("/patients", response_model=PatientListResponse)
+async def get_vendor_patients(
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    search: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0
 ):
     """
-    Get a list of all patients for the current vendor.
+    Get all patients for the current vendor
     
-    - **skip**: Number of records to skip (for pagination)
-    - **limit**: Maximum number of records to return
-    - **search**: Optional search term to filter by name, username, or email
-    - **status_filter**: Optional status filter ('active', 'inactive', or 'all')
+    **Permissions:** All (vendor admin, manager, editor, viewer)
+    
+    **Query Parameters:**
+    - search: Search by username, name, or email
+    - status_filter: Filter by status (active/inactive)
+    - limit: Number of results (default 100)
+    - offset: Pagination offset (default 0)
     """
-    
-    # Step 1: Verify the current user is a vendor
-    user_query = text("""
-        SELECT user_id, role 
-        FROM public.user_account 
-        WHERE username = :username
-    """)
-    user_result = db.execute(user_query, {"username": current_user.username}).fetchone()
-    
-    if not user_result or user_result[1] != 'vendor':
+    try:
+        # Step 1: Check permissions and get vendor_id
+        permissions = get_user_permissions(db, current_user)
+        
+        if not permissions.can_view_patients:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to view patients"
+            )
+        
+        vendor_id = permissions.vendor_id
+        
+        # Step 2: Build query with filters
+        query_params = {"vendor_id": vendor_id}
+        
+        base_query = """
+            SELECT 
+                c.customer_id,
+                c.user_id,
+                u.username,
+                u.email,
+                u.first_name,
+                u.last_name,
+                u.phone,
+                u.status,
+                u.created_at,
+                c.created_by_vendor_id,
+                u.age,
+                u.gender
+            FROM customers.customer c
+            JOIN public.user_account u ON c.user_id = u.user_id
+            WHERE c.created_by_vendor_id = :vendor_id
+        """
+        
+        # Add search filter
+        if search:
+            base_query += """
+                AND (
+                    u.username ILIKE :search 
+                    OR u.first_name ILIKE :search 
+                    OR u.last_name ILIKE :search 
+                    OR u.email ILIKE :search
+                )
+            """
+            query_params["search"] = f"%{search}%"
+        
+        # Add status filter
+        if status_filter:
+            base_query += " AND u.status = :status"
+            query_params["status"] = status_filter
+        
+        # Add ordering and pagination
+        base_query += " ORDER BY u.created_at DESC LIMIT :limit OFFSET :offset"
+        query_params["limit"] = limit
+        query_params["offset"] = offset
+        
+        # Step 3: Execute query
+        result = db.execute(text(base_query), query_params).fetchall()
+        
+        # Step 4: Get total count
+        count_query = """
+            SELECT COUNT(*) 
+            FROM customers.customer c
+            JOIN public.user_account u ON c.user_id = u.user_id
+            WHERE c.created_by_vendor_id = :vendor_id
+        """
+        if search:
+            count_query += """
+                AND (
+                    u.username ILIKE :search 
+                    OR u.first_name ILIKE :search 
+                    OR u.last_name ILIKE :search 
+                    OR u.email ILIKE :search
+                )
+            """
+        if status_filter:
+            count_query += " AND u.status = :status"
+            
+        total_count = db.execute(text(count_query), query_params).scalar()
+        
+        # Step 5: Format response
+        patients = [
+            PatientResponse(
+                customer_id=row[0],
+                user_id=row[1],
+                username=row[2],
+                email=row[3],
+                first_name=row[4],
+                last_name=row[5],
+                phone=row[6],
+                status=row[7],
+                created_at=row[8],
+                created_by_vendor_id=row[9],
+                age=row[10],
+                gender=row[11]
+            )
+            for row in result
+        ]
+        
+        return PatientListResponse(
+            patients=patients,
+            total_count=total_count,
+            vendor_id=vendor_id
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only vendors can list patients"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch patients: {str(e)}"
         )
-    
-    vendor_user_id = user_result[0]
-    
-    # Step 2: Get vendor_id for this user
-    vendor_id = get_vendor_id_from_user(db, vendor_user_id)
-    if not vendor_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vendor profile not found for this user"
-        )
-    
-    # Build base WHERE clause
-    where_conditions = [
-        "ua.created_by_vendor_id = :vendor_id",
-        "ua.role = 'patient'"
-    ]
-    
-    # ✅ Add status filter if provided
-    if status_filter and status_filter != 'all':
-        where_conditions.append("ua.status = :status_filter")
-    
-    # ✅ Add search filter if provided
-    if search:
-        where_conditions.append("""
-            (ua.username ILIKE :search 
-             OR ua.email ILIKE :search 
-             OR CONCAT(ua.first_name, ' ', ua.last_name) ILIKE :search)
-        """)
-    
-    where_clause = " AND ".join(where_conditions)
-    
-    # Build queries with customer_id
-    count_query = text(f"""
-        SELECT COUNT(DISTINCT ua.user_id) as total
-        FROM public.user_account ua
-        WHERE {where_clause}
-    """)
-    
-    select_query = text(f"""
-        SELECT 
-            ua.user_id, 
-            ua.username, 
-            ua.email, 
-            ua.first_name, 
-            ua.last_name, 
-            ua.phone, 
-            ua.age, 
-            ua.gender, 
-            ua.role, 
-            ua.status, 
-            ua.created_at,
-            c.customer_id
-        FROM public.user_account ua
-        LEFT JOIN customers.customer c ON c.user_id = ua.user_id
-        WHERE {where_clause}
-        ORDER BY ua.created_at DESC
-        LIMIT :limit OFFSET :skip
-    """)
-    
-    # Build parameters
-    params = {
-        "vendor_id": vendor_id,
-        "limit": limit,
-        "skip": skip
-    }
-    
-    if status_filter and status_filter != 'all':
-        params["status_filter"] = status_filter
-    
-    if search:
-        params["search"] = f"%{search}%"
-    
-    # Execute queries
-    total_result = db.execute(count_query, params)
-    patients_result = db.execute(select_query, params)
-    
-    total = total_result.fetchone()[0]
-    patients = patients_result.fetchall()
-    
-    patient_list = [
-        PatientResponse(
-            user_id=p[0],
-            username=p[1],
-            email=p[2],
-            first_name=p[3],
-            last_name=p[4],
-            phone=p[5],
-            age=p[6],
-            gender=p[7],
-            role=p[8],
-            status=p[9],
-            created_at=p[10],
-            customer_id=p[11]  # ✅ Include customer_id
-        )
-        for p in patients
-    ]
-    
-    return PatientsListResponse(
-        total=total,
-        patients=patient_list
-    )
 
-@router.get("/patients/{patient_id}", response_model=PatientResponse)
-async def get_patient(
+
+@router.get("/patients/{patient_id}")
+async def get_patient_details(
     patient_id: int,
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get details of a specific patient by ID.
+    Get detailed information about a specific patient
     
-    - **patient_id**: The ID of the patient (user_id)
+    **Permissions:** All (vendor admin, manager, editor, viewer)
     """
-    
-    # Step 1: Verify the current user is a vendor
-    user_query = text("""
-        SELECT user_id, role 
-        FROM public.user_account 
-        WHERE username = :username
-    """)
-    user_result = db.execute(user_query, {"username": current_user.username}).fetchone()
-    
-    if not user_result or user_result[1] != 'vendor':
+    try:
+        # Check permissions
+        permissions = get_user_permissions(db, current_user)
+        
+        if not permissions.can_view_patients:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to view patients"
+            )
+        
+        vendor_id = permissions.vendor_id
+        
+        # Query patient details
+        query = text("""
+            SELECT 
+                c.customer_id,
+                c.user_id,
+                u.username,
+                u.email,
+                u.first_name,
+                u.last_name,
+                u.phone,
+                u.status,
+                u.created_at,
+                c.created_by_vendor_id,
+                c.age,
+                c.gender,
+                c.address,
+                c.city,
+                c.state,
+                c.postal_code,
+                c.country
+            FROM customers.customer c
+            JOIN public.user_account u ON c.user_id = u.user_id
+            WHERE c.customer_id = :customer_id 
+            AND c.created_by_vendor_id = :vendor_id
+        """)
+        
+        result = db.execute(query, {
+            "customer_id": patient_id,
+            "vendor_id": vendor_id
+        }).fetchone()
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient not found or you don't have permission to access this patient"
+            )
+        
+        return {
+            "customer_id": result[0],
+            "user_id": result[1],
+            "username": result[2],
+            "email": result[3],
+            "first_name": result[4],
+            "last_name": result[5],
+            "phone": result[6],
+            "status": result[7],
+            "created_at": result[8],
+            "created_by_vendor_id": result[9],
+            "age": result[10],
+            "gender": result[11],
+            "address": result[12],
+            "city": result[13],
+            "state": result[14],
+            "postal_code": result[15],
+            "country": result[16]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only vendors can view patient details"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch patient details: {str(e)}"
         )
-    
-    vendor_user_id = user_result[0]
-    
-    # Step 2: Get vendor_id for this user
-    vendor_id = get_vendor_id_from_user(db, vendor_user_id)
-    if not vendor_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vendor profile not found for this user"
-        )
-    
-    # ✅ Include customer_id in the query
-    query = text("""
-        SELECT 
-            ua.user_id, 
-            ua.username, 
-            ua.email, 
-            ua.first_name, 
-            ua.last_name,
-            ua.phone, 
-            ua.age, 
-            ua.gender, 
-            ua.role, 
-            ua.status, 
-            ua.created_at,
-            c.customer_id
-        FROM public.user_account ua
-        LEFT JOIN customers.customer c ON c.user_id = ua.user_id
-        WHERE ua.user_id = :patient_id 
-        AND ua.created_by_vendor_id = :vendor_id 
-        AND ua.role = 'patient'
-    """)
-    
-    result = db.execute(query, {
-        "patient_id": patient_id,
-        "vendor_id": vendor_id
-    })
-    
-    patient = result.fetchone()
-    
-    if not patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found or does not belong to this vendor"
-        )
-    
-    return PatientResponse(
-        user_id=patient[0],
-        username=patient[1],
-        email=patient[2],
-        first_name=patient[3],
-        last_name=patient[4],
-        phone=patient[5],
-        age=patient[6],
-        gender=patient[7],
-        role=patient[8],
-        status=patient[9],
-        created_at=patient[10],
-        customer_id=patient[11]  # ✅ Include customer_id
-    )
 
-@router.put("/patients/{patient_id}", response_model=PatientResponse)
+
+@router.put("/patients/{patient_id}")
 async def update_patient(
     patient_id: int,
-    patient_update: PatientUpdateRequest,
+    patient_data: PatientUpdateRequest,
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Update a patient's information.
+    Update patient information
     
-    - **patient_id**: The ID of the patient to update (user_id)
-    - Only provided fields will be updated
+    **Permissions:** Vendor Admin, Manager, Editor
     """
-    
-    # Step 1: Verify the current user is a vendor
-    user_query = text("""
-        SELECT user_id, role 
-        FROM public.user_account 
-        WHERE username = :username
-    """)
-    user_result = db.execute(user_query, {"username": current_user.username}).fetchone()
-    
-    if not user_result or user_result[1] != 'vendor':
+    try:
+        # Check permissions
+        permissions = get_user_permissions(db, current_user)
+        
+        if not permissions.can_edit_patients:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to edit patients"
+            )
+        
+        # Verify patient belongs to this vendor
+        check_query = text("""
+            SELECT c.user_id 
+            FROM customers.customer c
+            WHERE c.customer_id = :customer_id 
+            AND c.created_by_vendor_id = :vendor_id
+        """)
+        
+        patient_result = db.execute(check_query, {
+            "customer_id": patient_id,
+            "vendor_id": permissions.vendor_id
+        }).fetchone()
+        
+        if not patient_result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient not found or you don't have permission"
+            )
+        
+        patient_user_id = patient_result[0]
+        
+        # Build update queries
+        user_updates = []
+        user_params = {"user_id": patient_user_id}
+        
+        if patient_data.first_name:
+            user_updates.append("first_name = :first_name")
+            user_params["first_name"] = patient_data.first_name
+        
+        if patient_data.last_name:
+            user_updates.append("last_name = :last_name")
+            user_params["last_name"] = patient_data.last_name
+        
+        if patient_data.email:
+            # Check if email already exists for another user
+            email_check = text("""
+                SELECT user_id FROM public.user_account 
+                WHERE email = :email AND user_id != :user_id
+            """)
+            if db.execute(email_check, {"email": patient_data.email, "user_id": patient_user_id}).fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already exists"
+                )
+            user_updates.append("email = :email")
+            user_params["email"] = patient_data.email
+        
+        if patient_data.phone:
+            if not validate_phone(patient_data.phone):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid phone number format"
+                )
+            user_updates.append("phone = :phone")
+            user_params["phone"] = patient_data.phone
+        
+        # Update user_account if there are changes
+        if user_updates:
+            user_updates.append("updated_at = CURRENT_TIMESTAMP")
+            update_user_query = f"""
+                UPDATE public.user_account 
+                SET {', '.join(user_updates)}
+                WHERE user_id = :user_id
+            """
+            db.execute(text(update_user_query), user_params)
+        
+        # Update customer table
+        customer_updates = []
+        customer_params = {"customer_id": patient_id}
+        
+        if patient_data.age is not None:
+            customer_updates.append("age = :age")
+            customer_params["age"] = patient_data.age
+        
+        if patient_data.gender:
+            customer_updates.append("gender = :gender")
+            customer_params["gender"] = patient_data.gender
+        
+        if patient_data.phone:
+            customer_updates.append("phone = :phone")
+            customer_params["phone"] = patient_data.phone
+        
+        if customer_updates:
+            customer_updates.append("updated_at = CURRENT_TIMESTAMP")
+            update_customer_query = f"""
+                UPDATE customers.customer 
+                SET {', '.join(customer_updates)}
+                WHERE customer_id = :customer_id
+            """
+            db.execute(text(update_customer_query), customer_params)
+        
+        db.commit()
+        
+        return {
+            "message": "Patient updated successfully",
+            "customer_id": patient_id,
+            "updated_by_user_type": permissions.user_type
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only vendors can update patients"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update patient: {str(e)}"
         )
-    
-    vendor_user_id = user_result[0]
-    
-    # Step 2: Get vendor_id for this user
-    vendor_id = get_vendor_id_from_user(db, vendor_user_id)
-    if not vendor_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vendor profile not found for this user"
-        )
-    
-    # Check if patient exists and belongs to this vendor
-    check_query = text("""
-        SELECT ua.user_id 
-        FROM public.user_account ua
-        WHERE ua.user_id = :patient_id 
-        AND ua.created_by_vendor_id = :vendor_id 
-        AND ua.role = 'patient'
-    """)
-    
-    existing_patient = db.execute(check_query, {
-        "patient_id": patient_id,
-        "vendor_id": vendor_id
-    }).fetchone()
-    
-    if not existing_patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found or does not belong to this vendor"
-        )
-    
-    # Validate phone if provided
-    if patient_update.phone and not validate_phone(patient_update.phone):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid phone number format"
-        )
-    
-    # Build update query dynamically based on provided fields
-    update_fields = []
-    params = {"patient_id": patient_id}
-    
-    if patient_update.email is not None:
-        update_fields.append("email = :email")
-        params["email"] = patient_update.email
-    
-    if patient_update.first_name is not None:
-        update_fields.append("first_name = :first_name")
-        params["first_name"] = patient_update.first_name
-    
-    if patient_update.last_name is not None:
-        update_fields.append("last_name = :last_name")
-        params["last_name"] = patient_update.last_name
-    
-    if patient_update.phone is not None:
-        update_fields.append("phone = :phone")
-        params["phone"] = patient_update.phone
-    
-    if patient_update.age is not None:
-        update_fields.append("age = :age")
-        params["age"] = patient_update.age
-    
-    if patient_update.gender is not None:
-        update_fields.append("gender = :gender")
-        params["gender"] = patient_update.gender
-    
-    if patient_update.status is not None:
-        update_fields.append("status = :status")
-        params["status"] = patient_update.status
-    
-    if not update_fields:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update"
-        )
-    
-    update_query = text(f"""
-        UPDATE public.user_account
-        SET {', '.join(update_fields)}
-        WHERE user_id = :patient_id
-        RETURNING user_id, username, email, first_name, last_name, phone, age, gender, role, status, created_at
-    """)
-    
-    result = db.execute(update_query, params)
-    db.commit()
-    
-    updated_patient = result.fetchone()
-    
-    # Get customer_id
-    customer_query = text("""
-        SELECT customer_id FROM customers.customer WHERE user_id = :user_id
-    """)
-    customer_result = db.execute(customer_query, {"user_id": updated_patient[0]}).fetchone()
-    customer_id = customer_result[0] if customer_result else None
-    
-    return PatientResponse(
-        user_id=updated_patient[0],
-        username=updated_patient[1],
-        email=updated_patient[2],
-        first_name=updated_patient[3],
-        last_name=updated_patient[4],
-        phone=updated_patient[5],
-        age=updated_patient[6],
-        gender=updated_patient[7],
-        role=updated_patient[8],
-        status=updated_patient[9],
-        created_at=updated_patient[10],
-        customer_id=customer_id  # ✅ Include customer_id
-    )
+
 
 @router.delete("/patients/{patient_id}")
-async def delete_patient(
+async def deactivate_patient(
     patient_id: int,
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Delete a patient (soft delete by setting status to inactive).
+    Deactivate a patient account (soft delete)
     
-    - **patient_id**: The ID of the patient to delete (user_id)
+    **Permissions:** Vendor Admin, Manager
     """
-    
-    # Step 1: Verify the current user is a vendor
-    user_query = text("""
-        SELECT user_id, role 
-        FROM public.user_account 
-        WHERE username = :username
-    """)
-    user_result = db.execute(user_query, {"username": current_user.username}).fetchone()
-    
-    if not user_result or user_result[1] != 'vendor':
+    try:
+        # Check permissions
+        permissions = get_user_permissions(db, current_user)
+        
+        if not permissions.can_deactivate_patients:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to deactivate patients"
+            )
+        
+        # Verify patient belongs to this vendor
+        check_query = text("""
+            SELECT c.user_id 
+            FROM customers.customer c
+            WHERE c.customer_id = :customer_id 
+            AND c.created_by_vendor_id = :vendor_id
+        """)
+        
+        patient_result = db.execute(check_query, {
+            "customer_id": patient_id,
+            "vendor_id": permissions.vendor_id
+        }).fetchone()
+        
+        if not patient_result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient not found or you don't have permission"
+            )
+        
+        # Deactivate user account
+        deactivate_query = text("""
+            UPDATE public.user_account 
+            SET status = 'inactive', updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = :user_id
+        """)
+        
+        db.execute(deactivate_query, {"user_id": patient_result[0]})
+        db.commit()
+        
+        return {
+            "message": "Patient account deactivated successfully",
+            "customer_id": patient_id,
+            "deactivated_by_user_type": permissions.user_type
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only vendors can delete patients"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to deactivate patient: {str(e)}"
         )
+
+
+@router.post("/patients/{patient_id}/activate")
+async def activate_patient(
+    patient_id: int,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Activate a patient account
     
-    vendor_user_id = user_result[0]
-    
-    # Step 2: Get vendor_id for this user
-    vendor_id = get_vendor_id_from_user(db, vendor_user_id)
-    if not vendor_id:
+    **Permissions:** Vendor Admin, Manager
+    """
+    try:
+        # Check permissions
+        permissions = get_user_permissions(db, current_user)
+        
+        if not permissions.can_deactivate_patients:  # Same permission as deactivate
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to activate patients"
+            )
+        
+        # Verify patient belongs to this vendor
+        check_query = text("""
+            SELECT c.user_id 
+            FROM customers.customer c
+            WHERE c.customer_id = :customer_id 
+            AND c.created_by_vendor_id = :vendor_id
+        """)
+        
+        patient_result = db.execute(check_query, {
+            "customer_id": patient_id,
+            "vendor_id": permissions.vendor_id
+        }).fetchone()
+        
+        if not patient_result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Patient not found or you don't have permission"
+            )
+        
+        # Activate user account
+        activate_query = text("""
+            UPDATE public.user_account 
+            SET status = 'active', updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = :user_id
+        """)
+        
+        db.execute(activate_query, {"user_id": patient_result[0]})
+        db.commit()
+        
+        return {
+            "message": "Patient account activated successfully",
+            "customer_id": patient_id,
+            "activated_by_user_type": permissions.user_type
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Vendor profile not found for this user"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to activate patient: {str(e)}"
         )
-    
-    # Check if patient exists and belongs to this vendor
-    check_query = text("""
-        SELECT ua.user_id 
-        FROM public.user_account ua
-        WHERE ua.user_id = :patient_id 
-        AND ua.created_by_vendor_id = :vendor_id 
-        AND ua.role = 'patient'
-    """)
-    
-    existing_patient = db.execute(check_query, {
-        "patient_id": patient_id,
-        "vendor_id": vendor_id
-    }).fetchone()
-    
-    if not existing_patient:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient not found or does not belong to this vendor"
-        )
-    
-    # Soft delete - set status to inactive
-    delete_query = text("""
-        UPDATE public.user_account
-        SET status = 'inactive'
-        WHERE user_id = :patient_id
-    """)
-    
-    db.execute(delete_query, {"patient_id": patient_id})
-    db.commit()
-    
-    return {
-        "message": "Patient account deactivated successfully",
-        "patient_id": patient_id
-    }

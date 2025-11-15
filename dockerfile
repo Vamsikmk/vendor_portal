@@ -17,6 +17,7 @@ COPY requirements-metrics.txt .
 RUN pip install --no-cache-dir -r requirements-metrics.txt
 
 # Copy application files
+COPY database.py .            
 COPY auth.py .
 COPY config.py .
 COPY employee_management.py .

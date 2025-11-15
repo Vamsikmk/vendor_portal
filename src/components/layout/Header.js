@@ -124,7 +124,7 @@ const Header = () => {
   };
 
   // Check if user is a vendor
-  const isVendor = user?.role === 'vendor';
+  // const isVendor = user?.role === 'vendor';
 
   // Debug: Log current path to console (remove this in production)
   console.log('Current path:', location.pathname);
@@ -175,7 +175,7 @@ const Header = () => {
                 {showManagementDropdown && (
                   <div className="nav-dropdown-menu">
                     {/* Only show Patients for vendors */}
-                    {user?.role === 'vendor' && (
+                    {(user?.role === 'vendor' || user?.role === 'employee') && (
                       <button
                         className="nav-dropdown-item"
                         onClick={() => handleNavigation('/management/patients')}

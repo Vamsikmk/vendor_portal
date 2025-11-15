@@ -238,7 +238,7 @@ function PatientManagement() {
                                     </div>
                                     <div className="detail-row">
                                         <span className="detail-label">Patient ID:</span>
-                                        <span className="detail-value">MB-{patient.customer_id}</span>
+                                        <span className="detail-value">MB-{patient.user_id}</span>
                                     </div>
                                     <div className="detail-row">
                                         <span className="detail-label">Created:</span>
