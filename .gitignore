@@ -2,12 +2,14 @@
 
 # dependencies
 /node_modules
-__pycache__/
+__pycache__/*
 /.pnp
 .pnp.js
+package-lock.json
 
 # testing
 /coverage
+test_*.py
 
 # production
 /build
@@ -18,6 +20,8 @@ __pycache__/
 .env.development.local
 .env.test.local
 .env.production.local
+.env
+.env.production 
 
 npm-debug.log*
 yarn-debug.log*
