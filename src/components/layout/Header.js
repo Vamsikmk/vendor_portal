@@ -25,6 +25,9 @@ const Header = () => {
     if (path === '/management') {
       return location.pathname.startsWith('/management');
     }
+    if (path === '/clinical-trial') {
+      return location.pathname === '/clinical-trial';
+    }
     return location.pathname === path;
   };
 
@@ -155,6 +158,10 @@ const Header = () => {
               Our Products
             </Link>
 
+            <Link to="/clinical-trial" className={isActiveLink('/clinical-trial') ? 'active' : ''}>
+              Clinical Trial
+            </Link>
+
             {/* Management dropdown - only for vendors */}
             {/* Management dropdown - for vendors and employees */}
             {(user?.role === 'vendor' || user?.role === 'employee') && (
@@ -249,6 +256,13 @@ const Header = () => {
                   >
                     <span className="item-icon">⚙️</span>
                     <span>Settings</span>
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleNavigation('/billing')}
+                  >
+                    <span className="item-icon">💳</span>
+                    <span>Billing</span>
                   </button>
                 </div>
 

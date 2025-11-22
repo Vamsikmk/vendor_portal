@@ -75,6 +75,10 @@ app.include_router(patient_router)
 # Include employee management router
 app.include_router(employee_router)
 
+# Include vendor clinical trial router (ADD THIS)
+from vendor_clinical_api import router as clinical_router
+app.include_router(clinical_router)
+
 
 # Complete the OAuth setup with our get_db function
 def get_current_user_with_db(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):

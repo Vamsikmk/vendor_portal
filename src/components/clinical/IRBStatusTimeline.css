@@ -1,0 +1,295 @@
+/* src/components/clinical/IRBStatusTimeline.css */
+
+.irb-timeline-container {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f5f9;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.title-icon {
+    font-size: 20px;
+}
+
+.current-status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.timeline-content {
+    position: relative;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 30px;
+    bottom: 30px;
+    width: 2px;
+    background: linear-gradient(180deg, #00BFA5 0%, #e5e7eb 100%);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.timeline-item.latest .timeline-content-card {
+    border: 2px solid #00BFA5;
+    box-shadow: 0 4px 12px rgba(0, 191, 165, 0.15);
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -40px;
+    top: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+}
+
+.marker-icon {
+    font-size: 16px;
+}
+
+.timeline-content-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.timeline-content-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 12px;
+}
+
+.timeline-status {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.timeline-date {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.timeline-comments {
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #475569;
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 3px solid #cbd5e1;
+}
+
+.status-transition {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.from-status,
+.to-status {
+    padding: 4px 8px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.to-status {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.key-dates {
+    margin-top: 24px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0fdfc, #e0f2fe);
+    border-radius: 8px;
+}
+
+.key-dates-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.key-date-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.date-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.date-value {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+/* View More Button */
+.view-more-button {
+    width: 100%;
+    padding: 12px 16px;
+    margin-top: 16px;
+    background: white;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.view-more-button:hover {
+    background: #f8fafc;
+    border-color: #00BFA5;
+    color: #00BFA5;
+}
+
+.view-more-button svg {
+    transition: transform 0.2s ease;
+}
+
+.view-more-button:hover svg {
+    transform: translateY(2px);
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .timeline-header {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .status-transition {
+        flex-wrap: wrap;
+    }
+
+    .title-icon-svg {
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .badge-icon {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 4px;
+    }
+
+    .badge-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .marker-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .document-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .empty-icon svg {
+        color: #cbd5e1;
+        opacity: 0.5;
+    }
+
+    .status-icon {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 4px;
+    }
+
+    .status-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .installment-notes svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+}
