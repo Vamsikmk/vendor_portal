@@ -12,6 +12,8 @@ Integrates all API modules including:
 
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
 from sqlalchemy.orm import Session
 import logging
 
@@ -29,7 +31,7 @@ from config import (
 from database import get_db
 
 # Import existing modules
-from auth import router as auth_router
+# from auth import router as auth_router  # NOTE: auth.py doesn't export router
 from employee_management import router as employee_router
 from patient_management import router as patient_router
 
@@ -66,7 +68,7 @@ app.add_middleware(
 # ==================== Include Routers ====================
 
 # Authentication endpoints (login, register, etc.)
-app.include_router(auth_router)
+# app.include_router(auth_router)  # NOTE: auth_router not available
 
 # Employee management endpoints
 app.include_router(employee_router)
@@ -159,21 +161,27 @@ async def shutdown_event():
 @app.exception_handler(404)
 async def not_found_handler(request, exc):
     """Custom 404 handler"""
-    return {
-        "error": "Not Found",
-        "message": f"The endpoint {request.url.path} does not exist",
-        "documentation": "/docs"
-    }
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "Not Found",
+            "message": f"The endpoint {request.url.path} does not exist",
+            "documentation": "/docs"
+        }
+    )
 
 
 @app.exception_handler(500)
 async def internal_error_handler(request, exc):
     """Custom 500 handler"""
     logger.error(f"Internal server error: {str(exc)}")
-    return {
-        "error": "Internal Server Error",
-        "message": "An unexpected error occurred. Please try again later."
-    }
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "message": "An unexpected error occurred. Please try again later."
+        }
+    )
 
 
 # ==================== Run Application ====================
