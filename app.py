@@ -10,12 +10,14 @@ Integrates all API modules including:
 - Dashboard Metrics (dbRetrievalWithNewMetrics.py)
 """
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import logging
+from datetime import timedelta
 
 # Import configuration
 from config import (
@@ -24,7 +26,8 @@ from config import (
     APP_DESCRIPTION,
     CORS_ORIGINS,
     PORT,
-    HOST
+    HOST,
+    ACCESS_TOKEN_EXPIRE_MINUTES
 )
 
 # Import database
@@ -37,6 +40,13 @@ from patient_management import router as patient_router
 
 # Import new vendor clinical trial module
 from vendor_clinical_api import router as clinical_router
+
+# Import auth functions
+from auth import (
+    Token,
+    authenticate_user,
+    create_access_token
+)
 
 # Setup logging
 logging.basicConfig(
@@ -78,6 +88,39 @@ app.include_router(patient_router)
 
 # Vendor clinical trial endpoints (NEW)
 app.include_router(clinical_router)
+
+# ==================== Authentication Endpoints ====================
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """
+    Login endpoint for all users (vendor, patient, employee, admin).
+    
+    Accepts username and password via OAuth2 form data.
+    Returns JWT token with user role and user_id.
+    Works for ALL roles including 'admin'.
+    
+    Args:
+        form_data: OAuth2PasswordRequestForm with username and password
+        db: Database session
+        
+    Returns:
+        Token with access_token and token_type
+    """
+    user = authenticate_user(db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role, "user_id": user.user_id},
+        expires_delta=access_token_expires
+    )
+    logger.info(f"✅ User '{user.username}' (role: {user.role}) logged in successfully")
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # ==================== Root Health Check ====================
 
