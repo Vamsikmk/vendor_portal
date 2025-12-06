@@ -985,6 +985,61 @@ async def verify_identity(data: IdentityVerification, db: Session = Depends(get_
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to verify identity"
         )
+    
+@app.get("/api/admin/vendors")
+async def get_all_vendors(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Fetch all active vendors for admin dropdown selection."""
+    try:
+        # Verify user is a vendor/admin
+        if current_user.role != 'vendor':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only vendors/admins can access vendor list"
+            )
+        
+        query = text("""
+            SELECT 
+                v.vendor_id,
+                v.company_name,
+                v.contact_info,
+                v.status,
+                u.email,
+                u.first_name,
+                u.last_name
+            FROM public.vendor v
+            JOIN public.user_account u ON v.user_id = u.user_id
+            WHERE v.status = 'active'
+            ORDER BY v.vendor_id
+        """)
+        
+        result = db.execute(query).fetchall()
+        
+        vendors = []
+        for row in result:
+            vendors.append({
+                "vendor_id": row[0],
+                "company_name": row[1],
+                "contact_info": row[2],
+                "status": row[3],
+                "email": row[4],
+                "first_name": row[5],
+                "last_name": row[6],
+                "display_name": f"{row[1]} ({row[0]})"  # e.g., "Biohm Labs Vendor (V006)"
+            })
+        
+        return {"vendors": vendors}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error fetching vendors: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch vendors: {str(e)}"
+        )
 
     # Endpoint 2: Reset password
 @app.post("/reset-password")

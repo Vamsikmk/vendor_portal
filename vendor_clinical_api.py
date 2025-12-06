@@ -94,16 +94,17 @@ class ClinicalTrialCreate(BaseModel):
     trial_name: str = Field(..., min_length=1, max_length=200)
     trial_description: Optional[str] = Field(None, max_length=1000)
     product_name: str = Field(..., min_length=1, max_length=200)
+    vendor_id: Optional[str] = Field(None, description="Vendor ID to associate with trial (admin only)")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "trial_name": "DailyBiotic Pro Phase 1 Safety Study",
                 "trial_description": "Phase 1 clinical trial for safety and preliminary efficacy",
-                "product_name": "DailyBiotic Pro"
+                "product_name": "DailyBiotic Pro",
+                "vendor_id": "V006"
             }
         }
-
 
 class ClinicalTrialResponse(BaseModel):
     """Response model for clinical trial information"""
@@ -240,24 +241,20 @@ async def create_clinical_trial(
                 detail="Only vendors can create clinical trials"
             )
         
-        # Get vendor_id
-        vendor_id = get_vendor_id(db, current_user)
+        # Get vendor_id - use provided vendor_id if available, otherwise get from current user
+        if hasattr(trial_data, 'vendor_id') and trial_data.vendor_id:
+            vendor_id = trial_data.vendor_id
+            # Verify vendor exists
+            verify_query = text("SELECT vendor_id FROM public.vendor WHERE vendor_id = :vendor_id")
+            if not db.execute(verify_query, {"vendor_id": vendor_id}).fetchone():
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Vendor {vendor_id} not found"
+                )
+        else:
+            vendor_id = get_vendor_id(db, current_user)
         
-        # Check if vendor already has a trial (Phase 1 limitation)
-        existing_trial_query = text("""
-            SELECT trial_id 
-            FROM public.clinical_trial 
-            WHERE vendor_id = :vendor_id
-        """)
-        existing_trial = db.execute(existing_trial_query, {"vendor_id": vendor_id}).fetchone()
-        
-        if existing_trial:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Vendor already has an active trial. Only one trial per vendor allowed in Phase 1."
-            )
-        
-        # Insert new clinical trial
+        # Insert new trial
         insert_query = text("""
             INSERT INTO public.clinical_trial (
                 vendor_id,
@@ -279,7 +276,21 @@ async def create_clinical_trial(
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP,
                 :user_id
-            ) RETURNING trial_id, created_at, updated_at
+            ) RETURNING 
+                trial_id,
+                vendor_id,
+                trial_name,
+                trial_description,
+                product_name,
+                trial_status,
+                irb_status,
+                irb_submission_date,
+                irb_approval_date,
+                trial_start_date,
+                trial_end_date,
+                created_at,
+                updated_at,
+                created_by_user_id
         """)
         
         result = db.execute(insert_query, {
@@ -292,28 +303,23 @@ async def create_clinical_trial(
         
         db.commit()
         
-        trial_id = result[0]
-        created_at = result[1]
-        updated_at = result[2]
+        logger.info(f"✅ Created clinical trial {result[0]} for vendor {vendor_id}")
         
-        logger.info(f"âœ… Clinical trial {trial_id} created for vendor {vendor_id}")
-        
-        # Return the created trial
         return ClinicalTrialResponse(
-            trial_id=trial_id,
-            vendor_id=vendor_id,
-            trial_name=trial_data.trial_name,
-            trial_description=trial_data.trial_description,
-            product_name=trial_data.product_name,
-            trial_status='preparing',
-            irb_status='preparation',
-            irb_submission_date=None,
-            irb_approval_date=None,
-            trial_start_date=None,
-            trial_end_date=None,
-            created_at=created_at,
-            updated_at=updated_at,
-            created_by_user_id=current_user.user_id
+            trial_id=result[0],
+            vendor_id=result[1],
+            trial_name=result[2],
+            trial_description=result[3],
+            product_name=result[4],
+            trial_status=result[5],
+            irb_status=result[6],
+            irb_submission_date=result[7],
+            irb_approval_date=result[8],
+            trial_start_date=result[9],
+            trial_end_date=result[10],
+            created_at=result[11],
+            updated_at=result[12],
+            created_by_user_id=result[13]
         )
         
     except HTTPException:
@@ -321,12 +327,11 @@ async def create_clinical_trial(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"âŒ Error creating clinical trial: {str(e)}")
+        logger.error(f"❌ Error creating clinical trial: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create clinical trial: {str(e)}"
         )
-
 
 @router.get("/trials", response_model=List[ClinicalTrialResponse])
 async def get_vendor_trials(
