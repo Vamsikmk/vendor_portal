@@ -45,7 +45,17 @@ function PatientManagement() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to fetch patients');
+                const errorMessage = errorData.detail || 'Failed to fetch patients';
+                
+                // Handle "vendor profile not found" gracefully
+                if (errorMessage.includes('Vendor profile not found') || errorMessage.includes('vendor_id')) {
+                    console.log('No vendor profile found - showing empty state');
+                    setPatients([]);
+                    setError(null);
+                    return;
+                }
+                
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();
@@ -187,26 +197,28 @@ function PatientManagement() {
                     </div>
                 ) : error ? (
                     <div className="error-state">
-                        <p className="error-message">Error: {error}</p>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                        <h3 style={{ marginBottom: '12px', color: '#0f172a' }}>Unable to Load Patients</h3>
+                        <p className="error-message" style={{ marginBottom: '24px' }}>{error}</p>
                         <button onClick={fetchPatients} className="btn-retry">
-                            Retry
+                            🔄 Retry
                         </button>
                     </div>
                 ) : patients.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">👥</div>
-                        <h3>No Patients Found</h3>
+                        <h3>No Patients Available</h3>
                         <p>
                             {searchTerm || statusFilter !== 'all'
                                 ? 'No patients match your search criteria'
-                                : 'You haven\'t created any patient accounts yet'}
+                                : 'No patient accounts are currently associated with your organization'}
                         </p>
                         {!searchTerm && statusFilter === 'all' && (
                             <button
                                 className="btn-create-patient"
                                 onClick={() => setIsCreateModalOpen(true)}
                             >
-                                Create Your First Patient
+                                Add Your First Patient
                             </button>
                         )}
                     </div>

@@ -27,6 +27,7 @@ const ClinicalTrialDashboard = () => {
     const fetchAllTrials = async () => {
         try {
             setLoading(true);
+            setError(null);
             const token = localStorage.getItem('auth_token');
 
             // Fetch all trials
@@ -37,20 +38,35 @@ const ClinicalTrialDashboard = () => {
                 }
             });
 
-            if (!trialsResponse.ok) throw new Error('Failed to fetch trials');
+            if (!trialsResponse.ok) {
+                // Handle 404 or other errors gracefully
+                if (trialsResponse.status === 404) {
+                    console.log('No trials endpoint found or no trials available');
+                    setAllTrials([]);
+                    setError('You have not registered for any clinical trials yet. Contact support to get started.');
+                    setLoading(false);
+                    return;
+                }
+                throw new Error(`Failed to fetch trials: ${trialsResponse.status}`);
+            }
+
             const trials = await trialsResponse.json();
 
-            if (trials.length === 0) {
-                setError('No clinical trial found. Please register for a trial first.');
+            if (!trials || trials.length === 0) {
+                console.log('No clinical trials found for this vendor');
+                setAllTrials([]);
+                setError('You have not registered for any clinical trials yet. Contact support to get started.');
                 setLoading(false);
                 return;
             }
 
             setAllTrials(trials);
+            setSelectedTrialId(trials[0].trial_id);
             setLoading(false);
         } catch (err) {
             console.error('Error fetching trials:', err);
-            setError(err.message);
+            setAllTrials([]);
+            setError(err.message || 'Failed to fetch clinical trials. Please try again.');
             setLoading(false);
         }
     };
@@ -166,11 +182,27 @@ const ClinicalTrialDashboard = () => {
     if (error) {
         return (
             <div className="clinical-trial-container">
-                <div className="loading-container">
-                    <p style={{ color: '#ef4444' }}>{error}</p>
-                    <button onClick={fetchAllTrials} className="btn btn-primary" style={{ marginTop: '16px' }}>
-                        Retry
+                <div className="clinical-trial-header">
+                    <div className="header-content">
+                        <h1 className="page-title">Clinical Trials</h1>
+                        <p className="page-subtitle">
+                            View and manage all your clinical trials
+                        </p>
+                    </div>
+                </div>
+
+                <div className="loading-container" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>📋</div>
+                    <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>No Clinical Trials Yet</h2>
+                    <p style={{ color: '#64748b', fontSize: '16px', marginBottom: '30px' }}>
+                        {error}
+                    </p>
+                    <button onClick={fetchAllTrials} className="btn btn-primary" style={{ marginRight: '10px' }}>
+                        🔄 Refresh
                     </button>
+                    <a href="mailto:support@mannbiome.com" className="btn btn-secondary">
+                        📧 Contact Support
+                    </a>
                 </div>
             </div>
         );
