@@ -1,0 +1,162 @@
+/* src/components/clinical/TrialStatusCard.css */
+
+.trial-status-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f5f9;
+    margin-bottom: 24px;
+}
+
+.trial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    gap: 20px;
+}
+
+.trial-title-section {
+    flex: 1;
+}
+
+.trial-name {
+    font-size: 22px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.3px;
+}
+
+.trial-product {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.trial-product svg {
+    flex-shrink: 0;
+}
+
+.trial-product span {
+    font-weight: 600;
+    color: #00BFA5;
+}
+
+.status-badges {
+    display: flex;
+    gap: 8px;
+}
+
+.status-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.trial-description {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.trial-description p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #475569;
+}
+
+.trial-info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 16px 0;
+    border-top: 1px solid #f1f5f9;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.info-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.irb-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.irb-icon {
+    font-size: 16px;
+}
+
+.trial-timeline {
+    display: flex;
+    gap: 32px;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0fdfc, #e0f2fe);
+    border-radius: 8px;
+    margin-top: 16px;
+}
+
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.timeline-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.timeline-value {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .trial-info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .trial-header {
+        flex-direction: column;
+    }
+
+    .trial-info-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .trial-timeline {
+        flex-direction: column;
+        gap: 12px;
+    }
+}

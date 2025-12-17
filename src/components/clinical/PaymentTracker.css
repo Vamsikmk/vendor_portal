@@ -1,0 +1,320 @@
+/* src/components/clinical/PaymentTracker.css */
+
+.payment-tracker-container {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f5f9;
+    position: sticky;
+    top: 80px;
+}
+
+.section-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.title-icon {
+    font-size: 20px;
+}
+
+/* Payment Summary */
+.payment-summary {
+    margin-bottom: 24px;
+}
+
+.summary-card {
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.summary-card.total {
+    background: linear-gradient(135deg, #00BFA5, #00a693);
+    color: white;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.summary-card.paid {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+}
+
+.summary-card.pending {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+}
+
+.summary-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+    margin-bottom: 6px;
+}
+
+.summary-card.total .summary-label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.summary-card.paid .summary-label {
+    color: #059669;
+}
+
+.summary-card.pending .summary-label {
+    color: #d97706;
+}
+
+.summary-value {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.summary-card.paid .summary-value {
+    color: #047857;
+}
+
+.summary-card.pending .summary-value {
+    color: #b45309;
+}
+
+/* Progress Section */
+.progress-section {
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.progress-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.progress-percentage {
+    font-size: 14px;
+    font-weight: 700;
+    color: #00BFA5;
+}
+
+.progress-bar {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00BFA5, #00d4b8);
+    border-radius: 20px;
+    transition: width 0.5s ease;
+}
+
+/* Payment Schedule */
+.payment-schedule {
+    margin-bottom: 20px;
+}
+
+.schedule-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 16px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.installments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.installment-card {
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.installment-card.paid {
+    border-left: 4px solid #10b981;
+    background: #f0fdf4;
+}
+
+.installment-card.pending {
+    border-left: 4px solid #f59e0b;
+}
+
+.installment-card.overdue {
+    border-left: 4px solid #ef4444;
+    background: #fef2f2;
+}
+
+.installment-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.installment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.installment-number {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.number-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #00BFA5, #00a693);
+    color: white;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.installment-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.installment-amount {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+
+.installment-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.date-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.date-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.date-value {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.date-value.paid {
+    color: #10b981;
+}
+
+.installment-notes {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #64748b;
+    border-left: 2px solid #cbd5e1;
+}
+
+.installment-notes svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #94a3b8;
+}
+
+/* Help Text */
+.help-text {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    background: #eff6ff;
+    border-radius: 8px;
+    border-left: 3px solid #3b82f6;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #1e40af;
+}
+
+.help-text svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #3b82f6;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .payment-tracker-container {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .installment-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

@@ -20,7 +20,8 @@ const Login = () => {
     const typeParam = urlParams.get('type');
 
     // If type parameter exists and is valid, pre-select it
-    if (typeParam && (typeParam === 'customer' || typeParam === 'vendor')) {
+    // UPDATED: Added 'employee' as valid type
+    if (typeParam && (typeParam === 'customer' || typeParam === 'vendor' || typeParam === 'employee')) {
       setUserType(typeParam);
       console.log(`✅ User type pre-selected from URL: ${typeParam}`);
     }
@@ -57,7 +58,7 @@ const Login = () => {
       console.log('Selected user type:', userType);
 
       // VALIDATE: Check if selected user type matches database role
-      const dbRole = userData.role; // 'vendor' or 'patient' from database
+      const dbRole = userData.role; // 'vendor', 'patient', or 'employee' from database
 
       // Map selected userType to expected database role
       let expectedRole = '';
@@ -65,6 +66,8 @@ const Login = () => {
         expectedRole = 'vendor';
       } else if (userType === 'customer') {
         expectedRole = 'patient'; // customer selection expects 'patient' role in DB
+      } else if (userType === 'employee') {
+        expectedRole = 'employee'; // employee selection expects 'employee' role in DB
       }
 
       // Check if roles match
@@ -86,6 +89,48 @@ const Login = () => {
         const customerPortalUrl = `https://d1tq9fhvg45se2.cloudfront.net/?customer=${userData.user_id}`;
         console.log('✅ Customer login successful - Redirecting to customer portal:', customerPortalUrl);
         window.location.href = customerPortalUrl;
+      } else if (userData.role === 'employee') {
+        // NEW: Handle employee login
+        console.log('✅ Employee login successful - Fetching permissions...');
+
+        try {
+          // Fetch employee permissions from backend
+          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+          const token = localStorage.getItem('auth_token');
+
+          const response = await fetch(`${API_BASE_URL}/api/vendor/employees/me/permissions`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch employee permissions');
+          }
+
+          const permissions = await response.json();
+          console.log('Employee permissions:', permissions);
+
+          // Store permissions in localStorage for frontend to use
+          localStorage.setItem('employee_permissions', JSON.stringify(permissions));
+
+          // Log permission details
+          console.log('Employee role:', permissions.employee_role || permissions.user_type);
+          console.log('Can create employees:', permissions.can_create_employees);
+          console.log('Can edit employees:', permissions.can_edit_employees);
+          console.log('Can delete employees:', permissions.can_delete_employees);
+
+          // Redirect to vendor dashboard (employees use same dashboard as vendors)
+          console.log('✅ Redirecting to vendor dashboard...');
+          navigate('/', { replace: true });
+
+        } catch (permissionError) {
+          console.error('Error fetching permissions:', permissionError);
+          setErrorMessage('Login successful but failed to load permissions. Please try again.');
+          return;
+        }
       } else {
         // Handle unknown roles
         setErrorMessage(`Unknown user role: ${userData.role}. Please contact support.`);
@@ -154,49 +199,35 @@ const Login = () => {
                 />
                 <label htmlFor="vendor">Vendor</label>
               </div>
-              {/* <div className="user-type-option">
-                <input
-                  type="radio"
-                  id="hcp"
-                  name="userType"
-                  value="hcp"
-                  checked={userType === 'hcp'}
-                  onChange={() => setUserType('hcp')}
-                />
-                <label htmlFor="hcp">HCP (Healthcare Provider)</label>
-              </div>
+              {/* NEW: Employee Login Option */}
               <div className="user-type-option">
                 <input
                   type="radio"
-                  id="lab"
+                  id="employee"
                   name="userType"
-                  value="lab"
-                  checked={userType === 'lab'}
-                  onChange={() => setUserType('lab')}
+                  value="employee"
+                  checked={userType === 'employee'}
+                  onChange={() => setUserType('employee')}
                 />
-                <label htmlFor="lab">Lab</label>
-              </div> */}
+                <label htmlFor="employee">Employee</label>
+              </div>
             </div>
           </div>
 
-          {/* Approval Messages */}
-          {/* {userType === 'vendor' && (
-            <div className="approval-message show">
-              Note: Vendor accounts require verification before access is granted. Our team will review your credentials within 24-48 hours.
-            </div>
-          )} */}
-
-          {/* {userType === 'hcp' && (
-            <div className="approval-message show">
-              Note: Healthcare Provider accounts require verification before access is granted. Please ensure your professional credentials are up to date.
+          {/* Employee Info Message */}
+          {userType === 'employee' && (
+            <div className="info-message" style={{
+              backgroundColor: '#e3f2fd',
+              color: '#1565c0',
+              padding: '12px',
+              borderRadius: '6px',
+              marginBottom: '20px',
+              border: '1px solid #2196f3',
+              fontSize: '14px'
+            }}>
+              <strong>Employee Login:</strong> Use the credentials provided by your vendor administrator.
             </div>
           )}
-
-          {userType === 'lab' && (
-            <div className="approval-message show">
-              Note: Lab accounts require verification before access is granted. Please ensure your laboratory credentials and certifications are up to date.
-            </div>
-          )} */}
 
           <form onSubmit={handleSubmit}>
             {/* Success message from signup or password reset */}
@@ -267,7 +298,14 @@ const Login = () => {
 
             <div className="login-footer">
               <Link to="/forgot-password" className="forgot-password-link">Forgot Password?</Link>
-              <p>Don't have an account? <Link to="/signup" className="signup-link">Sign up</Link></p>
+              {userType !== 'employee' && (
+                <p>Don't have an account? <Link to="/signup" className="signup-link">Sign up</Link></p>
+              )}
+              {userType === 'employee' && (
+                <p style={{ color: '#666', fontSize: '14px' }}>
+                  Employees cannot self-register. Contact your administrator.
+                </p>
+              )}
             </div>
 
             <div className="divider">OR</div>
