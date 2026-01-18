@@ -61,7 +61,7 @@ const ClinicalTrialDashboard = () => {
             }
 
             setAllTrials(trials);
-            setSelectedTrialId(trials[0].trial_id);
+            // setSelectedTrialId(trials[0].trial_id);
             setLoading(false);
         } catch (err) {
             console.error('Error fetching trials:', err);

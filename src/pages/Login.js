@@ -86,7 +86,8 @@ const Login = () => {
         navigate('/', { replace: true });
       } else if (userData.role === 'patient') {
         // Redirect to customer portal with customer ID
-        const customerPortalUrl = `https://d1tq9fhvg45se2.cloudfront.net/?customer=${userData.user_id}`;
+        const customerPortalBaseUrl = process.env.REACT_APP_CUSTOMER_PORTAL_URL || 'https://d1tq9fhvg45se2.cloudfront.net';
+        const customerPortalUrl = `${customerPortalBaseUrl}/?customer=${userData.user_id}`;
         console.log('✅ Customer login successful - Redirecting to customer portal:', customerPortalUrl);
         window.location.href = customerPortalUrl;
       } else if (userData.role === 'employee') {
