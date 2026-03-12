@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import TrialStatusCard from '../components/clinical/TrialStatusCard';
 import IRBStatusTimeline from '../components/clinical/IRBStatusTimeline';
 import DocumentList from '../components/clinical/DocumentList';
+import QuestionnaireList from '../components/clinical/QuestionnaireList';
 import './ClinicalTrialDashboard.css';
 
 const ClinicalTrialDashboard = () => {
@@ -14,11 +15,14 @@ const ClinicalTrialDashboard = () => {
     const [documents, setDocuments] = useState([]);
     const [payments, setPayments] = useState([]);
     const [irbHistory, setIrbHistory] = useState([]);
+    const [linkedQuestionnaires, setLinkedQuestionnaires] = useState([]);
+    const [questionnaireDetailsMap, setQuestionnaireDetailsMap] = useState({});
+    const [questionnaireDetailsLoadingMap, setQuestionnaireDetailsLoadingMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [detailLoading, setDetailLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
 
     useEffect(() => {
         fetchAllTrials();
@@ -140,6 +144,29 @@ const ClinicalTrialDashboard = () => {
                 console.error('Error fetching documents:', err);
             }
 
+            // Fetch linked questionnaires for selected trial (Phase 4)
+            try {
+                const questionnairesResponse = await fetch(
+                    `${API_BASE_URL}/api/vendor/clinical/trials/${trialId}/questionnaires`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (questionnairesResponse.ok) {
+                    const questionnairesData = await questionnairesResponse.json();
+                    setLinkedQuestionnaires(questionnairesData || []);
+                } else {
+                    setLinkedQuestionnaires([]);
+                }
+            } catch (err) {
+                console.error('Error fetching linked questionnaires:', err);
+                setLinkedQuestionnaires([]);
+            }
+
             setDetailLoading(false);
         } catch (err) {
             console.error('Error fetching trial details:', err);
@@ -158,6 +185,39 @@ const ClinicalTrialDashboard = () => {
         setDocuments([]);
         setPayments([]);
         setIrbHistory([]);
+        setLinkedQuestionnaires([]);
+        setQuestionnaireDetailsMap({});
+        setQuestionnaireDetailsLoadingMap({});
+    };
+
+    const loadQuestionnaireDetails = async (questionnaireId) => {
+        if (!selectedTrialId) return;
+        if (questionnaireDetailsMap[questionnaireId]) return;
+
+        const token = localStorage.getItem('auth_token');
+        setQuestionnaireDetailsLoadingMap((prev) => ({ ...prev, [questionnaireId]: true }));
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/vendor/clinical/trials/${selectedTrialId}/questionnaires/${questionnaireId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch questionnaire ${questionnaireId}`);
+            }
+
+            const data = await response.json();
+            setQuestionnaireDetailsMap((prev) => ({ ...prev, [questionnaireId]: data }));
+        } catch (err) {
+            console.error('Error fetching questionnaire details:', err);
+        } finally {
+            setQuestionnaireDetailsLoadingMap((prev) => ({ ...prev, [questionnaireId]: false }));
+        }
     };
 
     const getStatusBadgeClass = (status) => {
@@ -338,6 +398,13 @@ const ClinicalTrialDashboard = () => {
                     />
 
                     <DocumentList documents={documents} />
+                    <QuestionnaireList
+                        questionnaires={linkedQuestionnaires}
+                        loading={detailLoading}
+                        detailsMap={questionnaireDetailsMap}
+                        detailsLoadingMap={questionnaireDetailsLoadingMap}
+                        onLoadDetails={loadQuestionnaireDetails}
+                    />
                 </div>
             </div>
         </div>

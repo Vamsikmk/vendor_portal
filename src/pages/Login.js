@@ -96,7 +96,7 @@ const Login = () => {
 
         try {
           // Fetch employee permissions from backend
-          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
           const token = localStorage.getItem('auth_token');
 
           const response = await fetch(`${API_BASE_URL}/api/vendor/employees/me/permissions`, {

@@ -26,7 +26,7 @@ const Header = () => {
       return location.pathname.startsWith('/management');
     }
     if (path === '/clinical-trial') {
-      return location.pathname === '/clinical-trial';
+      return location.pathname === '/clinical-trial' || location.pathname === '/vendor/trials';
     }
     return location.pathname === path;
   };
@@ -167,9 +167,11 @@ const Header = () => {
               </Link>
             )}
 
-            <Link to="/clinical-trial" className={isActiveLink('/clinical-trial') ? 'active' : ''}>
-              Clinical Trial
-            </Link>
+            {user?.role === 'vendor' && (
+              <Link to="/vendor/trials" className={isActiveLink('/clinical-trial') ? 'active' : ''}>
+                Clinical Trial
+              </Link>
+            )}
 
             {/* Management dropdown - only for vendors */}
             {/* Management dropdown - for vendors and employees */}

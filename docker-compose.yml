@@ -2,7 +2,7 @@ services:
   mannbiome-customer-portal-api:
     build: .
     ports:
-      - "8001:8001"
+      - "8005:8005"
     environment:
       - DATABASE_URL=postgresql://postgres:db_admin@vendor-portal-db.cszf6hop4o2t.us-east-2.rds.amazonaws.com:5432/mannbiome
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-this-in-production
@@ -15,7 +15,7 @@ services:
       - .:/app
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health-check"]
+      test: ["CMD", "curl", "-f", "http://localhost:8005/api/health-check"]
       interval: 30s
       timeout: 10s
       retries: 3

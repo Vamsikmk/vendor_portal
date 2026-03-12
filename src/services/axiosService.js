@@ -5,7 +5,7 @@ import { API_CONFIG } from '../config';
 
 // Create a new Axios instance with custom config
 const axiosInstance = axios.create({
-  baseURL: API_CONFIG.BASE_URL || 'http://localhost:8000', // Update with your backend URL
+  baseURL: API_CONFIG.BASE_URL || 'http://localhost:8005', // Update with your backend URL
   headers: {
     'Content-Type': 'application/json',
   },

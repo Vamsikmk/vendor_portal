@@ -15,7 +15,7 @@ function EditEmployeeModal({ isOpen, onClose, employee, onSuccess, isViewOnly = 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
 
     // Load employee data when modal opens
     useEffect(() => {

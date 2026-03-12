@@ -21,13 +21,16 @@ if CORS_ORIGINS_STR:
     CORS_ORIGINS.extend(CORS_ORIGINS_STR.split(","))
 
 # Server settings
-PORT = int(os.getenv("PORT", "8000"))
+PORT = int(os.getenv("PORT", "8005"))
 HOST = os.getenv("HOST", "0.0.0.0")
 
 # Application settings
 APP_NAME = "MannBiome API"
 APP_VERSION = "1.0.0"
 APP_DESCRIPTION = "API for the MannBiome platform with OAuth authentication"
+
+# Questionnaire module (Phase 4 cross-service integration)
+QUESTIONNAIRE_API_URL = os.getenv("QUESTIONNAIRE_API_URL", "http://localhost:8003")
 
 # AWS S3 settings for document uploads
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")

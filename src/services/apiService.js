@@ -2,7 +2,7 @@
 import { API_CONFIG } from '../config';
 import authService from './authService';
 
-const API_BASE_URL = API_CONFIG.BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = API_CONFIG.BASE_URL || 'http://localhost:8005';
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {

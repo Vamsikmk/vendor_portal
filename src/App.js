@@ -1,6 +1,6 @@
 // src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import VendorHub from './pages/VendorHub';
 import Login from './pages/Login';
@@ -128,15 +128,24 @@ function App() {
             />
 
             <Route
-              path="/clinical-trial"
+              path="/vendor/trials"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole="vendor">
                   <>
                     <Header />
                     <div className="content">
                       <ClinicalTrialDashboard />
                     </div>
                   </>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/clinical-trial"
+              element={
+                <ProtectedRoute requiredRole="vendor">
+                  <Navigate to="/vendor/trials" replace />
                 </ProtectedRoute>
               }
             />

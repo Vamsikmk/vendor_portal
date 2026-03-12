@@ -19,7 +19,7 @@ function CreateEmployeeModal({ isOpen, onClose, onSuccess }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
 
     // Handle input changes
     const handleChange = (e) => {

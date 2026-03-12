@@ -41,7 +41,7 @@ function Dashboard() {
 
   // API Base URL - UPDATED to use deployed API
   // const API_BASE_URL = 'https://3b6akxpfpr.us-east-2.awsapprunner.com';
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
 
 
   // Function to get auth headers - UPDATED with better error handling
