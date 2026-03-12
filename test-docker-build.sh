@@ -86,7 +86,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     
     docker run -d \
         --name $CONTAINER_NAME \
-        -p $TEST_PORT:8001 \
+        -p $TEST_PORT:8005 \
         -e DATABASE_URL="postgresql://postgres:db_admin@vendor-portal-db.cszf6hop4o2t.us-east-2.rds.amazonaws.com:5432/mannbiome" \
         -e JWT_SECRET_KEY="test-secret-key" \
         -e JWT_ALGORITHM="HS256" \

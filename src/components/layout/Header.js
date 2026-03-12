@@ -26,7 +26,7 @@ const Header = () => {
       return location.pathname.startsWith('/management');
     }
     if (path === '/clinical-trial') {
-      return location.pathname === '/clinical-trial';
+      return location.pathname === '/clinical-trial' || location.pathname === '/vendor/trials';
     }
     return location.pathname === path;
   };
@@ -151,16 +151,27 @@ const Header = () => {
           </div>
 
           <nav className="nav-links">
+            {/* Home link - always visible, goes to VendorHub or Dashboard */}
             <Link to="/" className={isActiveLink('/') ? 'active' : ''}>
-              Dashboard
-            </Link>
-            <Link to="/products" className={isActiveLink('/products') ? 'active' : ''}>
-              Our Products
+              🏠 Home
             </Link>
 
-            <Link to="/clinical-trial" className={isActiveLink('/clinical-trial') ? 'active' : ''}>
-              Clinical Trial
-            </Link>
+            {process.env.REACT_APP_ENABLE_DASHBOARD !== 'false' && (
+              <Link to="/" className={isActiveLink('/') ? 'active' : ''}>
+                Dashboard
+              </Link>
+            )}
+            {process.env.REACT_APP_ENABLE_PRODUCTS !== 'false' && (
+              <Link to="/products" className={isActiveLink('/products') ? 'active' : ''}>
+                Our Products
+              </Link>
+            )}
+
+            {user?.role === 'vendor' && (
+              <Link to="/vendor/trials" className={isActiveLink('/clinical-trial') ? 'active' : ''}>
+                Clinical Trial
+              </Link>
+            )}
 
             {/* Management dropdown - only for vendors */}
             {/* Management dropdown - for vendors and employees */}

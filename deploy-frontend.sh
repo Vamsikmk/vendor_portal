@@ -31,6 +31,9 @@ cat > .env.production << 'EOF'
 REACT_APP_API_BASE_URL=https://3b6akxpfpr.us-east-2.awsapprunner.com
 REACT_APP_APP_NAME=Vendor Portal
 REACT_APP_VERSION=1.0.0
+REACT_APP_CUSTOMER_PORTAL_URL=https://dfjabnv013m4m.cloudfront.net
+REACT_APP_ENABLE_DASHBOARD=false
+REACT_APP_ENABLE_PRODUCTS=false
 GENERATE_SOURCEMAP=false
 EOF
 

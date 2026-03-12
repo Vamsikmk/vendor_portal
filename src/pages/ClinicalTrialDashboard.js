@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import TrialStatusCard from '../components/clinical/TrialStatusCard';
 import IRBStatusTimeline from '../components/clinical/IRBStatusTimeline';
 import DocumentList from '../components/clinical/DocumentList';
+import QuestionnaireList from '../components/clinical/QuestionnaireList';
 import './ClinicalTrialDashboard.css';
 
 const ClinicalTrialDashboard = () => {
@@ -14,11 +15,14 @@ const ClinicalTrialDashboard = () => {
     const [documents, setDocuments] = useState([]);
     const [payments, setPayments] = useState([]);
     const [irbHistory, setIrbHistory] = useState([]);
+    const [linkedQuestionnaires, setLinkedQuestionnaires] = useState([]);
+    const [questionnaireDetailsMap, setQuestionnaireDetailsMap] = useState({});
+    const [questionnaireDetailsLoadingMap, setQuestionnaireDetailsLoadingMap] = useState({});
     const [loading, setLoading] = useState(true);
     const [detailLoading, setDetailLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
 
     useEffect(() => {
         fetchAllTrials();
@@ -27,6 +31,7 @@ const ClinicalTrialDashboard = () => {
     const fetchAllTrials = async () => {
         try {
             setLoading(true);
+            setError(null);
             const token = localStorage.getItem('auth_token');
 
             // Fetch all trials
@@ -37,20 +42,35 @@ const ClinicalTrialDashboard = () => {
                 }
             });
 
-            if (!trialsResponse.ok) throw new Error('Failed to fetch trials');
+            if (!trialsResponse.ok) {
+                // Handle 404 or other errors gracefully
+                if (trialsResponse.status === 404) {
+                    console.log('No trials endpoint found or no trials available');
+                    setAllTrials([]);
+                    setError('You have not registered for any clinical trials yet. Contact support to get started.');
+                    setLoading(false);
+                    return;
+                }
+                throw new Error(`Failed to fetch trials: ${trialsResponse.status}`);
+            }
+
             const trials = await trialsResponse.json();
 
-            if (trials.length === 0) {
-                setError('No clinical trial found. Please register for a trial first.');
+            if (!trials || trials.length === 0) {
+                console.log('No clinical trials found for this vendor');
+                setAllTrials([]);
+                setError('You have not registered for any clinical trials yet. Contact support to get started.');
                 setLoading(false);
                 return;
             }
 
             setAllTrials(trials);
+            // setSelectedTrialId(trials[0].trial_id);
             setLoading(false);
         } catch (err) {
             console.error('Error fetching trials:', err);
-            setError(err.message);
+            setAllTrials([]);
+            setError(err.message || 'Failed to fetch clinical trials. Please try again.');
             setLoading(false);
         }
     };
@@ -124,6 +144,29 @@ const ClinicalTrialDashboard = () => {
                 console.error('Error fetching documents:', err);
             }
 
+            // Fetch linked questionnaires for selected trial (Phase 4)
+            try {
+                const questionnairesResponse = await fetch(
+                    `${API_BASE_URL}/api/vendor/clinical/trials/${trialId}/questionnaires`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (questionnairesResponse.ok) {
+                    const questionnairesData = await questionnairesResponse.json();
+                    setLinkedQuestionnaires(questionnairesData || []);
+                } else {
+                    setLinkedQuestionnaires([]);
+                }
+            } catch (err) {
+                console.error('Error fetching linked questionnaires:', err);
+                setLinkedQuestionnaires([]);
+            }
+
             setDetailLoading(false);
         } catch (err) {
             console.error('Error fetching trial details:', err);
@@ -142,6 +185,39 @@ const ClinicalTrialDashboard = () => {
         setDocuments([]);
         setPayments([]);
         setIrbHistory([]);
+        setLinkedQuestionnaires([]);
+        setQuestionnaireDetailsMap({});
+        setQuestionnaireDetailsLoadingMap({});
+    };
+
+    const loadQuestionnaireDetails = async (questionnaireId) => {
+        if (!selectedTrialId) return;
+        if (questionnaireDetailsMap[questionnaireId]) return;
+
+        const token = localStorage.getItem('auth_token');
+        setQuestionnaireDetailsLoadingMap((prev) => ({ ...prev, [questionnaireId]: true }));
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/vendor/clinical/trials/${selectedTrialId}/questionnaires/${questionnaireId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch questionnaire ${questionnaireId}`);
+            }
+
+            const data = await response.json();
+            setQuestionnaireDetailsMap((prev) => ({ ...prev, [questionnaireId]: data }));
+        } catch (err) {
+            console.error('Error fetching questionnaire details:', err);
+        } finally {
+            setQuestionnaireDetailsLoadingMap((prev) => ({ ...prev, [questionnaireId]: false }));
+        }
     };
 
     const getStatusBadgeClass = (status) => {
@@ -166,11 +242,27 @@ const ClinicalTrialDashboard = () => {
     if (error) {
         return (
             <div className="clinical-trial-container">
-                <div className="loading-container">
-                    <p style={{ color: '#ef4444' }}>{error}</p>
-                    <button onClick={fetchAllTrials} className="btn btn-primary" style={{ marginTop: '16px' }}>
-                        Retry
+                <div className="clinical-trial-header">
+                    <div className="header-content">
+                        <h1 className="page-title">Clinical Trials</h1>
+                        <p className="page-subtitle">
+                            View and manage all your clinical trials
+                        </p>
+                    </div>
+                </div>
+
+                <div className="loading-container" style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>📋</div>
+                    <h2 style={{ marginBottom: '10px', color: '#0f172a' }}>No Clinical Trials Yet</h2>
+                    <p style={{ color: '#64748b', fontSize: '16px', marginBottom: '30px' }}>
+                        {error}
+                    </p>
+                    <button onClick={fetchAllTrials} className="btn btn-primary" style={{ marginRight: '10px' }}>
+                        🔄 Refresh
                     </button>
+                    <a href="mailto:support@mannbiome.com" className="btn btn-secondary">
+                        📧 Contact Support
+                    </a>
                 </div>
             </div>
         );
@@ -306,6 +398,13 @@ const ClinicalTrialDashboard = () => {
                     />
 
                     <DocumentList documents={documents} />
+                    <QuestionnaireList
+                        questionnaires={linkedQuestionnaires}
+                        loading={detailLoading}
+                        detailsMap={questionnaireDetailsMap}
+                        detailsLoadingMap={questionnaireDetailsLoadingMap}
+                        onLoadDetails={loadQuestionnaireDetails}
+                    />
                 </div>
             </div>
         </div>

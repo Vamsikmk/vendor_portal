@@ -110,7 +110,7 @@ function CreatePatientModal({ isOpen, onClose, onSuccess }) {
             const { confirmPassword, ...patientData } = formData;
 
             const response = await fetch(
-                `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001'}/api/vendor/patients`,
+                `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005'}/api/vendor/patients`,
                 {
                     method: 'POST',
                     headers: {

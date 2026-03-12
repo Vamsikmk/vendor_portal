@@ -37,7 +37,7 @@ function Employees() {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
 
     // API Base URL
-    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+    const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
 
     // Get auth headers
     const getAuthHeaders = () => {
@@ -64,16 +64,29 @@ function Employees() {
                     navigate('/login');
                     return;
                 }
+                if (response.status === 404) {
+                    console.log('No employees found or endpoint not available');
+                    setEmployees([]);
+                    setError(null);
+                    setLoading(false);
+                    return;
+                }
                 throw new Error(`Failed to fetch employees: ${response.status}`);
             }
 
             const data = await response.json();
             console.log('Employees data:', data);
-            setEmployees(data.employees || []);
+            setEmployees(data.employees || data || []);
+            setLoading(false);
         } catch (error) {
             console.error('Error fetching employees:', error);
-            setError(error.message);
-        } finally {
+            // Handle 404 gracefully - vendor might have no employees
+            if (error.message.includes('404')) {
+                setEmployees([]);
+                setError(null);
+            } else {
+                setError(error.message);
+            }
             setLoading(false);
         }
     };

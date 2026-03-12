@@ -1,7 +1,8 @@
 // src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
+import VendorHub from './pages/VendorHub';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import SignupPending from './pages/SignupPending';
@@ -32,33 +33,56 @@ function App() {
 
 
             {/* Protected routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <>
-                    <Header />
-                    <div className="content">
-                      <Dashboard />
-                    </div>
-                  </>
-                </ProtectedRoute>
-              }
-            />
+            {/* Default landing page - VendorHub is shown when Dashboard is disabled */}
+            {process.env.REACT_APP_ENABLE_DASHBOARD === 'false' && (
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Header />
+                      <div className="content">
+                        <VendorHub />
+                      </div>
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+            )}
 
-            <Route
-              path="/products"
-              element={
-                <ProtectedRoute>
-                  <>
-                    <Header />
-                    <div className="content">
-                      <MyProducts />
-                    </div>
-                  </>
-                </ProtectedRoute>
-              }
-            />
+            {/* Dashboard - enabled by REACT_APP_ENABLE_DASHBOARD flag */}
+            {process.env.REACT_APP_ENABLE_DASHBOARD !== 'false' && (
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Header />
+                      <div className="content">
+                        <Dashboard />
+                      </div>
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+            )}
+
+            {/* Products - enabled by REACT_APP_ENABLE_PRODUCTS flag */}
+            {process.env.REACT_APP_ENABLE_PRODUCTS !== 'false' && (
+              <Route
+                path="/products"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Header />
+                      <div className="content">
+                        <MyProducts />
+                      </div>
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+            )}
 
             {/* Management Routes */}
             <Route
@@ -104,15 +128,24 @@ function App() {
             />
 
             <Route
-              path="/clinical-trial"
+              path="/vendor/trials"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole="vendor">
                   <>
                     <Header />
                     <div className="content">
                       <ClinicalTrialDashboard />
                     </div>
                   </>
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/clinical-trial"
+              element={
+                <ProtectedRoute requiredRole="vendor">
+                  <Navigate to="/vendor/trials" replace />
                 </ProtectedRoute>
               }
             />

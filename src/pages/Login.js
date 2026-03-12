@@ -86,7 +86,8 @@ const Login = () => {
         navigate('/', { replace: true });
       } else if (userData.role === 'patient') {
         // Redirect to customer portal with customer ID
-        const customerPortalUrl = `https://d1tq9fhvg45se2.cloudfront.net/?customer=${userData.user_id}`;
+        const customerPortalBaseUrl = process.env.REACT_APP_CUSTOMER_PORTAL_URL || 'https://d1tq9fhvg45se2.cloudfront.net';
+        const customerPortalUrl = `${customerPortalBaseUrl}/?customer=${userData.user_id}`;
         console.log('✅ Customer login successful - Redirecting to customer portal:', customerPortalUrl);
         window.location.href = customerPortalUrl;
       } else if (userData.role === 'employee') {
@@ -95,7 +96,7 @@ const Login = () => {
 
         try {
           // Fetch employee permissions from backend
-          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+          const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8005';
           const token = localStorage.getItem('auth_token');
 
           const response = await fetch(`${API_BASE_URL}/api/vendor/employees/me/permissions`, {

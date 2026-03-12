@@ -3,11 +3,10 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-# PostgreSQL connection details
-DATABASE_URL = "postgresql://postgres:db_admin@vendor-portal-db.cszf6hop4o2t.us-east-2.rds.amazonaws.com:5432/mannbiome"
+from config import DATABASE_URL
 
-# Create SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
+# Create SQLAlchemy engine from environment-backed configuration
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 metadata = MetaData()

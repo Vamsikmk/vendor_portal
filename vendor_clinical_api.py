@@ -18,13 +18,15 @@ from decimal import Decimal
 import logging
 import boto3
 import os
+import httpx
 from botocore.exceptions import ClientError
 from config import (
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,
     S3_BUCKET_NAME,
-    S3_PRESIGNED_URL_EXPIRATION
+    S3_PRESIGNED_URL_EXPIRATION,
+    QUESTIONNAIRE_API_URL,
 )
 
 from database import get_db
@@ -983,6 +985,109 @@ async def get_trial_documents(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch documents: {str(e)}"
+        )
+
+
+@router.get("/trials/{trial_id}/questionnaires")
+async def get_trial_questionnaires(
+    trial_id: int,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get questionnaires linked to a vendor's trial (read-only).
+    """
+    try:
+        if current_user.role != 'vendor':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only vendors can access linked questionnaires"
+            )
+
+        vendor_id = get_vendor_id(db, current_user)
+        if not check_trial_ownership(db, trial_id, vendor_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Clinical trial not found or access denied"
+            )
+
+        questionnaires_url = f"{QUESTIONNAIRE_API_URL.rstrip('/')}/api/vendor/trials/{trial_id}/questionnaires"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(questionnaires_url, params={"vendor_id": vendor_id})
+            resp.raise_for_status()
+
+        linked_questionnaires = resp.json()
+        logger.info(f"✅ Retrieved {len(linked_questionnaires)} linked questionnaires for trial {trial_id}")
+        return linked_questionnaires
+
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as e:
+        logger.error(f"❌ Questionnaire module error for trial {trial_id}: {e.response.status_code}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to fetch linked questionnaires from questionnaire module"
+        )
+    except Exception as e:
+        logger.error(f"❌ Error fetching linked questionnaires: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch linked questionnaires: {str(e)}"
+        )
+
+
+@router.get("/trials/{trial_id}/questionnaires/{questionnaire_id}")
+async def get_trial_questionnaire_details(
+    trial_id: int,
+    questionnaire_id: int,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get full questionnaire content (questions) for a questionnaire linked to a vendor's trial.
+    """
+    try:
+        if current_user.role != 'vendor':
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only vendors can access questionnaire details"
+            )
+
+        vendor_id = get_vendor_id(db, current_user)
+        if not check_trial_ownership(db, trial_id, vendor_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Clinical trial not found or access denied"
+            )
+
+        details_url = (
+            f"{QUESTIONNAIRE_API_URL.rstrip('/')}/api/vendor/trials/"
+            f"{trial_id}/questionnaires/{questionnaire_id}"
+        )
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            details_resp = await client.get(details_url, params={"vendor_id": vendor_id})
+            details_resp.raise_for_status()
+            questionnaire_details = details_resp.json()
+
+        return questionnaire_details
+
+    except HTTPException:
+        raise
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            f"❌ Questionnaire module detail fetch failed "
+            f"(trial={trial_id}, questionnaire={questionnaire_id}): {e.response.status_code}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to fetch questionnaire details from questionnaire module"
+        )
+    except Exception as e:
+        logger.error(f"❌ Error fetching questionnaire details: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch questionnaire details: {str(e)}"
         )
 
 
