@@ -22,17 +22,18 @@ COPY auth.py .
 COPY config.py .
 COPY employee_management.py .
 COPY patient_management.py .
+COPY vendor_clinical_api.py .
 COPY dbRetrievalWithNewMetrics.py .
 
 # Create a main.py entry point if it doesn't exist
-RUN echo 'from dbRetrievalWithNewMetrics import app\nimport uvicorn\n\nif __name__ == "__main__":\n    uvicorn.run(app, host="0.0.0.0", port=8005)' > main.py
+RUN echo 'from dbRetrievalWithNewMetrics import app\nimport uvicorn\n\nif __name__ == "__main__":\n    uvicorn.run(app, host="0.0.0.0", port=8000)' > main.py
 
 # Expose port
-EXPOSE 8005
+EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8005/api/health-check')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"
 
 # Run the application
-CMD ["uvicorn", "dbRetrievalWithNewMetrics:app", "--host", "0.0.0.0", "--port", "8005"]
+CMD ["uvicorn", "dbRetrievalWithNewMetrics:app", "--host", "0.0.0.0", "--port", "8000"]
