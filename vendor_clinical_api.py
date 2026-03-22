@@ -8,7 +8,7 @@ UPDATED to match actual database tables:
 - trial_payment (not vendor_trial_payments)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel, EmailStr, Field, validator
@@ -1678,9 +1678,9 @@ async def admin_get_trial_documents(
 async def admin_upload_trial_document(
     trial_id: int,
     file: UploadFile = File(...),
-    document_type: str = None,
-    document_name: str = None,
-    notes: str = None,
+    document_type: str = Form(None),
+    document_name: str = Form(None),
+    notes: str = Form(None),
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
