@@ -77,9 +77,11 @@ const DocumentList = ({ documents }) => {
     };
 
     const handleDownload = (doc) => {
-        // In production, this would trigger actual download
-        console.log('Downloading document:', doc.document_name);
-        alert(`Download functionality will be implemented with backend integration.\nDocument: ${doc.document_name}`);
+        if (doc.s3_url) {
+            window.open(doc.s3_url, '_blank');
+        } else {
+            alert(`Download URL not available for: ${doc.document_name}`);
+        }
     };
 
     return (
