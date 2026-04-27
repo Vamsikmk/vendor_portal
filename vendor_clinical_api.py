@@ -97,14 +97,25 @@ class ClinicalTrialCreate(BaseModel):
     trial_description: Optional[str] = Field(None, max_length=1000)
     product_name: str = Field(..., min_length=1, max_length=200)
     vendor_id: Optional[str] = Field(None, description="Vendor ID to associate with trial (admin only)")
-    
+    subject_id: Optional[str] = Field(None, min_length=3, max_length=5, description="Unique 3-5 character subject identifier")
+
+    @validator('subject_id', pre=True, always=True)
+    def validate_subject_id(cls, v):
+        if v is None or v == '':
+            return None
+        v = v.strip().upper()
+        if not v.isalnum():
+            raise ValueError('Subject ID must contain only letters and numbers')
+        return v
+
     class Config:
         json_schema_extra = {
             "example": {
                 "trial_name": "DailyBiotic Pro Phase 1 Safety Study",
                 "trial_description": "Phase 1 clinical trial for safety and preliminary efficacy",
                 "product_name": "DailyBiotic Pro",
-                "vendor_id": "V006"
+                "vendor_id": "V006",
+                "subject_id": "ABC"
             }
         }
 
@@ -265,6 +276,7 @@ async def create_clinical_trial(
                 product_name,
                 trial_status,
                 irb_status,
+                subject_id,
                 created_at,
                 updated_at,
                 created_by_user_id
@@ -275,6 +287,7 @@ async def create_clinical_trial(
                 :product_name,
                 'preparing',
                 'preparation',
+                :subject_id,
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP,
                 :user_id
@@ -292,7 +305,8 @@ async def create_clinical_trial(
                 trial_end_date,
                 created_at,
                 updated_at,
-                created_by_user_id
+                created_by_user_id,
+                subject_id
         """)
         
         result = db.execute(insert_query, {
@@ -300,6 +314,7 @@ async def create_clinical_trial(
             "trial_name": trial_data.trial_name,
             "trial_description": trial_data.trial_description,
             "product_name": trial_data.product_name,
+            "subject_id": trial_data.subject_id if trial_data.subject_id else None,
             "user_id": current_user.user_id
         }).fetchone()
         
@@ -321,7 +336,8 @@ async def create_clinical_trial(
             trial_end_date=result[10],
             created_at=result[11],
             updated_at=result[12],
-            created_by_user_id=result[13]
+            created_by_user_id=result[13],
+            subject_id=result[14]
         )
         
     except HTTPException:
