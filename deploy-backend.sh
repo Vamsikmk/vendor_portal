@@ -23,7 +23,7 @@ APP_RUNNER_SERVICE="vendor-portal-api"
 # Set the full repository URI
 REPOSITORY_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPOSITORY_NAME"
 
-echo -e "${BLUE}📋 Deployment Configuration:${NC}"
+echo -e "${BLUE}📋 Deployment Configuration 1:${NC}"
 echo "• AWS Region: $AWS_REGION"
 echo "• AWS Account: $AWS_ACCOUNT_ID"
 echo "• ECR Repository: $REPOSITORY_NAME"
